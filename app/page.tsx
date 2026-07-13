@@ -27,7 +27,7 @@ const CLUSTERS: { title: string; tools: Tool[] }[] = [
   {
     title: "Energie & Kommune",
     tools: [
-      { href: "/gruenstrom-ampel", emoji: "⚡", title: "Grüne-Strom-Ampel", text: "Jetzt laden oder später? Lastverschiebung in grüne + günstige Stunden, mit CO₂-Monatsreport." },
+      { href: "/gruenstrom-ampel", emoji: "⚡", title: "Grünstrom-Fenster", text: "Bestes Zeitfenster für Wäscherei, Poolpumpe & E-Flotte — tägliche Team-Mail + CO₂-Monatsreport, ohne Smart Meter.", live: true },
       { href: "/hitze-briefing", emoji: "🏙️", title: "Hitze-Briefing", text: "Wo trifft Hitze auf Verwundbarkeit? Satelliten-Hitzeinseln × Kitas, Pflegeheime, Spielplätze." },
     ],
   },
