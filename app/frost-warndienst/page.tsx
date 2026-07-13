@@ -1,10 +1,17 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import DisclaimerBox from "@/components/DisclaimerBox";
 import AboutSection from "@/components/AboutSection";
+import type { MapMarker } from "@/components/MarkerMap";
 
-type Region = { region: string; kultur: string; gdd: number; stadium: string; krit: number; forecast_min: number[]; risiko: boolean };
+const MarkerMap = dynamic(() => import("@/components/MarkerMap"), {
+  ssr: false,
+  loading: () => <div className="flex h-[340px] items-center justify-center rounded-2xl bg-slate-100 text-sm text-slate-500">Karte lädt …</div>,
+});
+
+type Region = { region: string; kultur: string; lat?: number; lng?: number; gdd: number; stadium: string; krit: number; forecast_min: number[]; risiko: boolean };
 type Data = { regionen: Region[]; updated_at: string };
 
 export default function FrostPage() {
@@ -84,6 +91,23 @@ export default function FrostPage() {
         <p className="mb-3 text-xs text-slate-500">So arbeitet der Dienst: geschätztes Stadium + 3-Nächte-Frostvorschau je Region.</p>
         {error && <p className="text-sm text-red-700">Daten derzeit nicht erreichbar.</p>}
         {!data && !error && <div className="animate-pulse text-sm text-slate-500">Lade Stadien …</div>}
+        {data && data.regionen.some((r) => r.lat && r.lng) && (
+          <div className="mb-4">
+            <MarkerMap
+              height={320}
+              maxZoom={7}
+              markers={data.regionen
+                .filter((r): r is Region & { lat: number; lng: number } => r.lat != null && r.lng != null)
+                .map((r): MapMarker => ({
+                  lat: r.lat,
+                  lng: r.lng,
+                  color: r.risiko ? "#dc2626" : "#10b981",
+                  size: 15,
+                  popupHtml: `<strong>${r.region}</strong><br>${r.kultur === "wein" ? "Weinbau" : "Obstbau"} · Stadium ${r.stadium}<br>kritisch ab ${r.krit} °C · ${r.risiko ? "Frostgefahr" : "keine Gefahr"}`,
+                }))}
+            />
+          </div>
+        )}
         {data && (
           <table className="w-full min-w-115 text-sm">
             <thead>

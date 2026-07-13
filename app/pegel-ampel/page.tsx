@@ -1,10 +1,17 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import AmpelBadge, { type AmpelLevel } from "@/components/AmpelBadge";
 import DisclaimerBox from "@/components/DisclaimerBox";
 import AboutSection from "@/components/AboutSection";
 import Sparkline from "@/components/Sparkline";
+import type { MapMarker } from "@/components/MarkerMap";
+
+const MarkerMap = dynamic(() => import("@/components/MarkerMap"), {
+  ssr: false,
+  loading: () => <div className="flex h-[380px] items-center justify-center rounded-2xl bg-slate-100 text-sm text-slate-500">Karte lädt …</div>,
+});
 
 type Abschnitt = {
   abschnitt: string;
@@ -12,11 +19,15 @@ type Abschnitt = {
   ampel: AmpelLevel;
   pegel_cm: number | null;
   station_name: string;
+  station_lat: number | null;
+  station_lng: number | null;
   km_von: number;
   km_bis: number;
   gemessen_um: string;
   sparkline: [string, number][];
 };
+
+const AMPEL_HEX: Record<string, string> = { gruen: "#10b981", gelb: "#f59e0b", rot: "#ef4444", grau: "#94a3b8" };
 
 type PegelData = {
   abschnitte: Abschnitt[];
@@ -119,6 +130,24 @@ export default function PegelAmpelPage() {
             <AmpelBadge level="rot" label={`${counts.rot} kritisch`} />
             <span className="ml-auto">Stand: {fmtZeit(data.updated_at)} · stündliche Aktualisierung</span>
           </div>
+
+          <section className="mb-8">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500">Karte</h2>
+            <MarkerMap
+              markers={data.abschnitte
+                .filter((a): a is Abschnitt & { station_lat: number; station_lng: number } => a.station_lat != null && a.station_lng != null)
+                .map((a): MapMarker => ({
+                  lat: a.station_lat,
+                  lng: a.station_lng,
+                  color: AMPEL_HEX[a.ampel] ?? "#94a3b8",
+                  size: a.aktivitaet === "faehre" ? 11 : 15,
+                  popupHtml: `<strong>${a.abschnitt}</strong><br>${a.aktivitaet === "faehre" ? "Fähre" : "Kanu/SUP"} · ${(a.aktivitaet === "faehre" ? FAEHRE_LABEL : AMPEL_LABEL)[a.ampel] ?? a.ampel}<br>Pegel ${a.station_name}: ${a.pegel_cm ?? "–"} cm`,
+                }))}
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              Marker = Pegelstationen (große Punkte: Streckenabschnitte, kleine: Fähren) · Farbe = aktuelle Ampel · Karte: © OpenStreetMap
+            </p>
+          </section>
 
           <section className="mb-8">
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500">

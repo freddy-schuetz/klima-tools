@@ -1,8 +1,17 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import DisclaimerBox from "@/components/DisclaimerBox";
 import AboutSection from "@/components/AboutSection";
+import type { MapMarker } from "@/components/MarkerMap";
+
+const MarkerMap = dynamic(() => import("@/components/MarkerMap"), {
+  ssr: false,
+  loading: () => <div className="flex h-[380px] items-center justify-center rounded-2xl bg-slate-100 text-sm text-slate-500">Karte lädt …</div>,
+});
+
+const TYP_HEX: Record<string, string> = { bluete: "#c026d3", vogelzug: "#0284c7", laub: "#ea580c" };
 
 type Sight = { datum: string; lat: number; lng: number; foto: string | null; ort: string };
 type Art = {
@@ -72,6 +81,28 @@ export default function SaisonRadarPage() {
 
       {data && (
         <>
+          {(() => {
+            const sightMarkers: MapMarker[] = data.arten.flatMap((a) =>
+              a.sightings
+                .filter((s) => s.lat && s.lng)
+                .map((s): MapMarker => ({
+                  lat: s.lat,
+                  lng: s.lng,
+                  color: TYP_HEX[a.typ] ?? "#65a30d",
+                  size: 11,
+                  popupHtml: `<strong>${a.label}</strong><br>Sichtung ${s.datum ?? ""}<br>${s.ort ?? ""}`,
+                }))
+            );
+            return sightMarkers.length > 0 ? (
+              <div className="mb-6">
+                <MarkerMap markers={sightMarkers} maxZoom={9} />
+                <p className="mt-1 text-xs text-slate-500">
+                  Aktuelle Sichtungen aus iNaturalist/GBIF (Farbe je Naturphänomen) · Karte: © OpenStreetMap
+                </p>
+              </div>
+            ) : null;
+          })()}
+
           <ul className="mb-6 space-y-3">
             {data.arten.map((a) => (
               <li key={a.art_key} className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">

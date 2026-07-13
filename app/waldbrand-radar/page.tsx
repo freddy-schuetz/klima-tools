@@ -1,20 +1,33 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import DisclaimerBox from "@/components/DisclaimerBox";
 import AboutSection from "@/components/AboutSection";
+import type { MapMarker } from "@/components/MarkerMap";
 
+const MarkerMap = dynamic(() => import("@/components/MarkerMap"), {
+  ssr: false,
+  loading: () => <div className="flex h-[380px] items-center justify-center rounded-2xl bg-slate-100 text-sm text-slate-500">Karte lädt …</div>,
+});
+
+type Hotspot = { lat: number; lng: number; frp: number; datum: string; dist_km?: number };
 type Region = {
   region: string;
   bundesland: string;
   station_name: string;
+  lat: number;
+  lng: number;
   stufe_heute: number;
   stufe_morgen: number;
   forecast: number[];
   termin: string;
   banner_aktiv: boolean;
   hotspots_48h: number | null;
+  hotspots?: Hotspot[];
 };
+
+const STUFE_HEX: Record<number, string> = { 1: "#6ee7b7", 2: "#bef264", 3: "#fbbf24", 4: "#f97316", 5: "#dc2626" };
 
 type WaldbrandData = {
   regionen: Region[];
@@ -108,6 +121,34 @@ export default function WaldbrandRadarPage() {
               und Rauchen im Wald unterlassen.
             </div>
           )}
+
+          <div className="mb-6">
+            <MarkerMap
+              maxZoom={7}
+              markers={[
+                ...data.regionen.map((r): MapMarker => ({
+                  lat: r.lat,
+                  lng: r.lng,
+                  color: STUFE_HEX[r.stufe_heute] ?? "#94a3b8",
+                  size: 16,
+                  popupHtml: `<strong>${r.region}</strong><br>Waldbrandgefahr Stufe ${r.stufe_heute} (${STUFEN[r.stufe_heute]?.label ?? ""})<br>DWD-Station ${r.station_name}`,
+                })),
+                ...data.regionen.flatMap((r) =>
+                  (r.hotspots ?? []).map((h): MapMarker => ({
+                    lat: h.lat,
+                    lng: h.lng,
+                    color: "#dc2626",
+                    size: 8,
+                    ring: false,
+                    popupHtml: `🛰️ Aktives Feuer (Satellit)<br>${h.datum} · Intensität ${h.frp} MW`,
+                  }))
+                ),
+              ]}
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              Große Marker = Regionen (Farbe = DWD-Gefahrenstufe) · kleine rote Punkte = aktive Feuer (NASA FIRMS, 48 h) · Karte: © OpenStreetMap
+            </p>
+          </div>
 
           <ul className="mb-8 space-y-2">
             {data.regionen.map((r) => (
