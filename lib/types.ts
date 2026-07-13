@@ -1,0 +1,273 @@
+// Gemeinsame API-Kontrakte Frontend ↔ n8n (DMO-Tools). Basis: Standard-GeoJSON.
+
+import type {
+  Feature as GJFeature,
+  FeatureCollection as GJFeatureCollection,
+  Geometry,
+} from "geojson";
+
+export type LngLat = { lat: number; lng: number };
+export type Feature<P extends Record<string, unknown> = Record<string, unknown>> = GJFeature<Geometry, P>;
+export type FeatureCollection<P extends Record<string, unknown> = Record<string, unknown>> = GJFeatureCollection<Geometry, P>;
+
+export type CheckStatus = "running" | "done" | "error" | "not_found";
+export type StatusResponse<R> = {
+  status: CheckStatus;
+  tool?: string;
+  result?: R;
+  error_message?: string;
+};
+
+export type GeocodeHit = { label: string; lat: number; lng: number };
+
+// Angereicherte Wildtier-Art (GBIF) — Foto/Link aus Wikipedia
+export type Species = { name_de: string; name_sci?: string | null; count: number; image?: string | null; wiki_url?: string | null };
+
+// Gemeinsame v2-Anreicherungsfelder, die die Tool-Backends je Spot mitliefern.
+export type EnrichFields = {
+  id?: string;
+  description?: string | null; // Wikipedia-Kurztext
+  ai_why?: string | null; // KI-Einordnung
+  image?: string | null; // freies Bild (Wikipedia/Commons)
+  wiki_url?: string | null; // Quelle
+  open_now?: boolean | null;
+  opening_hours?: string | null;
+  website?: string | null;
+  phone?: string | null;
+  wheelchair?: string | null;
+  cuisine?: string | null;
+  fee?: string | null;
+};
+
+// Gemeinsame reiche POI-Karte (v2-Anreicherung): alle Tools mappen ihre Ergebnisse hierauf.
+export type RichPoi = {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  cat?: string;
+  category_label?: string;
+  emoji?: string;
+  color?: string; // Kartenpunkt-Farbe
+  distance_km?: number | null;
+  meta_right?: string | null; // z.B. "22 Min" (Fahrzeit) statt Distanz
+  description?: string | null; // Wikipedia-Kurztext
+  ai_why?: string | null; // KI-Einordnung "warum lohnenswert"
+  image?: string | null; // freie Quelle (Wikipedia/Commons)
+  wiki_url?: string | null; // Quelle/Attribution
+  open_now?: boolean | null;
+  opening_hours?: string | null;
+  website?: string | null;
+  phone?: string | null;
+  wheelchair?: string | null;
+  cuisine?: string | null;
+  fee?: string | null;
+  badges?: string[]; // Extra-Chips grün, z.B. ["Schnelllader"]
+  notes?: string[]; // Hinweis-Chips amber, z.B. Zugangs-/Verhaltensregeln
+  species?: Species[]; // nur Wildtier
+};
+
+// --- 1 Destinations-Datencheck ---------------------------------------------
+export type AttrStat = { key: string; label: string; filled: number; total: number; pct: number };
+export type QuickWin = { issue: string; count: number; examples: string[] };
+
+// v4: KI-Sicht-Beispiel (Template-Konsequenz je Datenlücke, deterministisch — keine KI)
+export type AiViewExample = {
+  name: string;
+  cat_label: string;
+  missing: string[];
+  consequence: string;
+};
+
+// v4: Wikipedia-Schaufenster (echte Aufrufe/Monat je Top-Sehenswürdigkeit)
+export type WikiShowcase = {
+  with_article: { name: string; views_month: number | null; url: string }[];
+  missing: string[];
+  article_count: number;
+  sight_count: number;
+};
+
+// v4: Regionen-Duell (zweiter Audit-Lauf, gleicher Radius)
+export type DatencheckCompare = {
+  address: string;
+  poi_total: number;
+  score: number;
+  attributes: AttrStat[];
+  categories: { key: string; label: string; count: number }[];
+};
+
+export type DatencheckResult = {
+  address_resolved: string;
+  center: LngLat;
+  radius_km: number;
+  poi_total: number;
+  categories: { key: string; label: string; count: number }[];
+  attributes: AttrStat[];
+  score: number;
+  quick_wins: QuickWin[];
+  ai_view?: AiViewExample[];
+  wiki_showcase?: WikiShowcase | null;
+  compare?: DatencheckCompare | null;
+  // map_samples-Properties (v4): miss (Attribut-Keys), edit_url (OSM-Editor-Link)
+  map_samples: FeatureCollection;
+};
+
+// --- 2 Lade-Lücken-Radar ----------------------------------------------------
+export type GapCell = { lat: number; lng: number; dist_km: number; gap: boolean };
+// Kapazitäts-Rohzahlen (Angebot BNetzA/OSM vs. geschätzte Nachfrage) — Szenario rechnet das Frontend.
+export type ChargeCapacity = {
+  source: string; // "BNetzA" | "OSM"
+  stand: string | null; // Register-Stand (BNetzA)
+  station_count: number;
+  charge_points: number;
+  fast_points: number;
+  supply_kw: number;
+  resident_pop: number;
+  resident_cars: number;
+  tourist_beds: number;
+  tourist_cars: number;
+  acc_count: number;
+  places: { name: string; pop: number }[];
+  bev_share_today: number; // % (bundesweiter Näherungswert)
+  afir_kw_per_bev: number; // AFIR-Benchmark
+};
+export type LadeLueckenResult = {
+  address_resolved: string;
+  center: LngLat;
+  radius_km: number;
+  grid: GapCell[];
+  chargers: FeatureCollection;
+  summary: { cells: number; gap_pct: number; worst_dist_km: number; charger_count: number; step_km?: number };
+  capacity?: ChargeCapacity;
+};
+
+// --- 3 Thementouren-Generator ----------------------------------------------
+export type TourStop = EnrichFields & { name: string; lat: number; lng: number; cat: string; order: number; has_wiki?: boolean };
+export type ThementourResult = {
+  start: LngLat;
+  start_label: string;
+  theme: string;
+  travel?: "foot" | "bike";
+  stops: TourStop[];
+  route: { geometry: Feature; distance_km: number; duration_min: number; ascent_m?: number | null; descent_m?: number | null } | null;
+  elevation_profile?: number[] | null;
+  roundtrip: boolean;
+};
+
+// --- 4 Genuss-Radar ---------------------------------------------------------
+export type Producer = EnrichFields & {
+  id: string; name: string; type: string; lat: number; lng: number;
+  distance_km: number; open_now: boolean | null; website: string | null;
+  products?: string[]; always_open?: boolean; today_hours?: string | null;
+};
+export type GenussResult = {
+  center: LngLat; producers: Producer[];
+  markets_today?: { name: string; hours: string; distance_km: number; lat: number; lng: number }[];
+};
+
+// --- 5 Golden-Hour-Fotospot-Finder -----------------------------------------
+export type PhotoSpot = EnrichFields & {
+  id: string; name: string; cat: string; lat: number; lng: number;
+  distance_km: number; faces_sunset: boolean; elevation: number | null;
+  dir_match?: boolean; panorama?: boolean; water_reflection?: boolean;
+};
+export type GlowDay = { day: string; date: string; score: number; low: number; mid: number; high: number };
+export type GoldenHourResult = {
+  center: LngLat;
+  date: string;
+  mode?: "sunset" | "sunrise";
+  sun?: {
+    event: string; event_time: string; azimuth: number;
+    phases: { label: string; from: string | null; to: string | null }[];
+    arrive_by: string | null; sunset_time: string; sunrise_time: string;
+  };
+  glow?: { today: GlowDay; week: GlowDay[] } | null;
+  moon?: { pct: number; label: string; full_hint: boolean } | null;
+  sunset_time: string;
+  sunrise_time: string;
+  sunset_azimuth: number;
+  cloud_cover_pct: number | null;
+  spots: PhotoSpot[];
+};
+
+// --- 6 Naturwunder-Finder ---------------------------------------------------
+export type Wonder = EnrichFields & {
+  id: string; name: string; type: string; lat: number; lng: number; distance_km: number;
+  website: string | null; height?: number | null; ele?: number | null; designation?: string | null;
+};
+export type NaturwunderResult = { center: LngLat; wonders: Wonder[] };
+
+// --- 7 Schlechtwetter-Radar -------------------------------------------------
+export type IndoorPoi = EnrichFields & { id: string; name: string; cat: string; lat: number; lng: number; distance_km: number; open_now: boolean | null; website: string | null; kids?: boolean };
+export type SchlechtwetterResult = {
+  center: LngLat;
+  weather: {
+    temp: number; precipitation: number; rain_soon: boolean;
+    recommendation: "indoor" | "outdoor"; summary: string;
+    hours?: { t: string; prob: number }[];
+    timeline?: { from: string; to: string; kind: "dry" | "rain" }[];
+    timeline_day?: "heute" | "morgen";
+  };
+  day_plan?: string | null;
+  pois: IndoorPoi[];
+};
+
+// --- 8 Ruhe-Finder ----------------------------------------------------------
+export type QuietSpot = EnrichFields & {
+  id: string; name: string; lat: number; lng: number; type: string;
+  distance_km?: number; oasis?: boolean;
+  stille_score: number; noise_score: number; crowd_score: number;
+  nearest_noise_km: number; crowd_km?: number | null; sounds?: string[];
+};
+export type RuheResult = {
+  center: LngLat; radius_km: number;
+  ruhe_index: number; step_km: number; grid: { lat: number; lng: number; dist_km: number }[];
+  region_birds?: Species[];
+  quiet_spots: QuietSpot[];
+  nearby_spots?: QuietSpot[]; // beste Orte <= 3,5 km um den Standort (inkl. Stadtoasen)
+  stille_route?: { geometry: Feature; distance_km: number; duration_min: number; stops: string[]; start_label?: string } | null;
+};
+
+// --- 9 Geheimtipp-Radar -----------------------------------------------------
+export type Hotspot = { name: string; lat: number; lng: number; views_month?: number | null };
+export type HiddenGem = EnrichFields & {
+  id: string; name: string; lat: number; lng: number; gem_score: number;
+  distance_from_hotspot_km: number; why: string; alt_to?: string | null; photo_note?: string | null;
+};
+export type GeheimtippResult = {
+  center: LngLat; category: string; hotspots: Hotspot[]; hidden_gems: HiddenGem[];
+  combo?: { hotspot: string; hotspot_views: number | null; gem: string; tipp: string } | null;
+};
+
+// --- 10 Wildtier-Beobachtungs-Radar ----------------------------------------
+export type WildlifeSpot = EnrichFields & {
+  id: string; name: string; type: string; lat: number; lng: number; distance_km: number;
+  protected: boolean; for_visitors?: boolean; access_note?: string | null; species?: Species[];
+};
+export type WildtierResult = { center: LngLat; radius_km: number; region_species: Species[]; spots: WildlifeSpot[]; areas?: FeatureCollection };
+
+// --- 11 Laden-&-Erleben -----------------------------------------------------
+export type NearbyPoi = {
+  id?: string; name: string; cat: string; emoji?: string; lat?: number; lng?: number; dist_m: number;
+  description?: string | null; image?: string | null; wiki_url?: string | null; website?: string | null;
+};
+export type ChargeStation = {
+  id: string; name: string; operator: string | null; lat: number; lng: number;
+  max_kw: number | null; fast: boolean; connectors: string[]; nearby: NearbyPoi[];
+};
+export type LadenErlebenResult = { center: LngLat; stations: ChargeStation[] };
+
+// --- 12 E-Auto-Tagesausflug-Check ------------------------------------------
+export type EautoTrip = EnrichFields & {
+  id?: string; name: string; lat: number; lng: number; drive_min: number; distance_km: number;
+  charger: { name: string; max_kw: number | null; dist_m: number };
+};
+export type EautoAusflugResult = { center: LngLat; range_km: number; trips: EautoTrip[] };
+
+// --- 13 Charge-&-Hike -------------------------------------------------------
+export type ChargeHikeSpot = {
+  id: string; name: string; lat: number; lng: number; distance_km: number;
+  max_kw: number | null; fast: boolean; parking: string | null; trail_hint: string | null;
+  trail_lat?: number; trail_lng?: number;
+};
+export type LadenWandernResult = { center: LngLat; spots: ChargeHikeSpot[]; trails?: FeatureCollection };
