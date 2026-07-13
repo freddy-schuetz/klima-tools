@@ -12,7 +12,7 @@ const HOSTS: Record<string, string> = {
   "solar-vorabcheck.friedemann-schuetz.de": "/solar-vorabcheck",
   // Welle 3 — Energie & Kommune
   "gruenstrom-ampel.friedemann-schuetz.de": "/gruenstrom-ampel",
-  "hitze-briefing.friedemann-schuetz.de": "/",
+  "hitze-briefing.friedemann-schuetz.de": "/hitze-briefing",
   // Welle 4 — Natur & Agrar (bis zum Launch → Landing)
   "saison-radar.friedemann-schuetz.de": "/",
   "frost-warndienst.friedemann-schuetz.de": "/",
