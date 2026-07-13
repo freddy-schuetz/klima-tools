@@ -7,9 +7,9 @@ const HOSTS: Record<string, string> = {
   // Welle 1 — Wasser & Wald (live)
   "pegel-ampel.friedemann-schuetz.de": "/pegel-ampel",
   "waldbrand-radar.friedemann-schuetz.de": "/waldbrand-radar",
-  // Welle 2 — Lead-Magnete (bis zum Launch → Landing)
-  "klimafit-check.friedemann-schuetz.de": "/",
-  "solar-vorabcheck.friedemann-schuetz.de": "/",
+  // Welle 2 — Klima-Checks (live)
+  "klimafit-check.friedemann-schuetz.de": "/klimafit-check",
+  "solar-vorabcheck.friedemann-schuetz.de": "/solar-vorabcheck",
   // Welle 3 — Energie & Kommune (bis zum Launch → Landing)
   "gruenstrom-ampel.friedemann-schuetz.de": "/",
   "hitze-briefing.friedemann-schuetz.de": "/",

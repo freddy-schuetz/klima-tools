@@ -20,8 +20,8 @@ const CLUSTERS: { title: string; tools: Tool[] }[] = [
   {
     title: "Klima-Checks",
     tools: [
-      { href: "/klimafit-check", emoji: "🌡️", title: "Klimafit-Destination-Check", text: "Hitzetage, Frosttage, Saisonfenster: Trend seit 1950 + Projektion 2050 für deinen Ort." },
-      { href: "/solar-vorabcheck", emoji: "☀️", title: "Solar-Vorabcheck", text: "Grobes PV-Potenzial, Jahresertrag und CO₂-Ersparnis für jede Adresse." },
+      { href: "/klimafit-check", emoji: "🌡️", title: "Destinations-Klimacheck", text: "Saisonfenster-Verschiebung, Kenntage & Handlungsfelder: gemessene Vergangenheit + CMIP6-Ensemble Richtung 2050 — ort-genau.", live: true },
+      { href: "/solar-vorabcheck", emoji: "☀️", title: "Gastgeber-Solar-Check", text: "PV-Fit für Hotels, Pensionen & Campingplätze: Saison-Lastprofil × Monats-Erzeugung, CO₂ pro Übernachtung.", live: true },
     ],
   },
   {
