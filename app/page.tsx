@@ -34,8 +34,8 @@ const CLUSTERS: { title: string; tools: Tool[] }[] = [
   {
     title: "Natur & Agrar",
     tools: [
-      { href: "/saison-radar", emoji: "🌸", title: "Saison-Radar", text: "Heideblüte, Kranichzug & Co.: der echte Naturkalender aus Live-Sichtungen — und wie er sich verschiebt." },
-      { href: "/frost-warndienst", emoji: "🍇", title: "Spätfrost-Warndienst", text: "Frostnächte in der Blühphase: Warnungen für Wein- und Obstbau." },
+      { href: "/saison-radar", emoji: "🌸", title: "Saison-Radar", text: "Heideblüte, Kranichzug & Co.: Peak-Erkennung aus Live-Meldedichte + Kampagnen-Trigger + Klima-Uhr (X Tage früher als 1961).", live: true },
+      { href: "/frost-warndienst", emoji: "🍇", title: "Spätfrost-Warndienst", text: "Weniger Fehlalarme: warnt nur, wenn Frost auf ein empfindliches Entwicklungsstadium trifft. Für Wein- & Obstbau.", live: true },
     ],
   },
 ];

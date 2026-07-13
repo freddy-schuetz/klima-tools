@@ -13,9 +13,9 @@ const HOSTS: Record<string, string> = {
   // Welle 3 — Energie & Kommune
   "gruenstrom-ampel.friedemann-schuetz.de": "/gruenstrom-ampel",
   "hitze-briefing.friedemann-schuetz.de": "/hitze-briefing",
-  // Welle 4 — Natur & Agrar (bis zum Launch → Landing)
-  "saison-radar.friedemann-schuetz.de": "/",
-  "frost-warndienst.friedemann-schuetz.de": "/",
+  // Welle 4 — Natur & Agrar
+  "saison-radar.friedemann-schuetz.de": "/saison-radar",
+  "frost-warndienst.friedemann-schuetz.de": "/frost-warndienst",
 };
 
 export default function proxy(req: NextRequest) {
