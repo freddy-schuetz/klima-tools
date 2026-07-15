@@ -7,15 +7,16 @@ import DisclaimerBox from "@/components/DisclaimerBox";
 import AboutSection from "@/components/AboutSection";
 
 type SaisonP = { start_doy: number | null; ende_doy: number | null; laenge: number; laenge_min?: number; laenge_max?: number };
-type Indikator = { key: string; p1: number; p2: number; p3: { med: number | null; min: number; max: number } };
+type Ziel = { med: number | null; min: number; max: number };
+type Indikator = { key: string; heute: number; ziel: Ziel };
 type Result = {
   ort: string;
   bundesland: string;
   dest_typ: string;
-  perioden: { p1: string; p2: string; p3: string };
+  perioden: { heute: string; ziel: string };
   modelle: string[];
   indikatoren: Indikator[];
-  saison: { label: string; p1: SaisonP; p2: SaisonP; p3: SaisonP; delta_laenge_tage: number | null };
+  saison: { label: string; heute: SaisonP; ziel: SaisonP; delta_laenge_tage: number | null };
   handlungsfelder?: { titel: string; bezug: string; massnahmen: string[] }[];
   chancen?: string[];
   fazit?: string;
@@ -98,7 +99,7 @@ export default function KlimacheckPage() {
         <h1 className="mb-2 text-3xl font-bold text-brand">🌡️ Destinations-Klimacheck</h1>
         <p className="max-w-2xl text-sm leading-relaxed text-slate-600">
           Wie verändert der Klimawandel <strong>deinen Ort</strong> — nicht dein Reisegebiet, nicht deinen
-          Landkreis? Gemessene Vergangenheit (ERA5 seit 1961) trifft CMIP6-Projektion Richtung 2050,
+          Landkreis? Die gemessene Gegenwart (ERA5-Normalperiode 1991–2020) trifft die CMIP6-Projektion um 2050,
           inklusive <strong>Saisonfenster-Verschiebung</strong> und konkreten Handlungsfeldern.
         </p>
       </header>
@@ -141,7 +142,7 @@ export default function KlimacheckPage() {
         )}
       </form>
 
-      {running && <div className="mb-8 animate-pulse text-sm text-slate-500">Hole 60 Jahre Messdaten + 3 Klimamodelle …</div>}
+      {running && <div className="mb-8 animate-pulse text-sm text-slate-500">Hole 30 Jahre Messdaten + 3 Klimamodelle …</div>}
 
       {r && status === "done" && (
         <>
@@ -149,10 +150,10 @@ export default function KlimacheckPage() {
             <h2 className="mb-1 text-lg font-semibold text-slate-900">{r.saison.label}</h2>
             <p className="mb-4 text-xs text-slate-500">{r.ort}</p>
             <div className="space-y-2">
-              {([["p1", r.saison.p1], ["p2", r.saison.p2], ["p3", r.saison.p3]] as const).map(([p, s]) => (
+              {([["heute", r.saison.heute], ["ziel", r.saison.ziel]] as const).map(([p, s]) => (
                 <div key={p} className="flex items-center gap-3">
-                  <span className="w-40 shrink-0 text-xs text-slate-500">{r.perioden[p]}</span>
-                  <SeasonBar s={s} highlight={p === "p3"} />
+                  <span className="w-44 shrink-0 text-xs text-slate-500">{p === "heute" ? `heute (${r.perioden.heute})` : `um 2050 (${r.perioden.ziel.replace(" (um 2050)", "")})`}</span>
+                  <SeasonBar s={s} highlight={p === "ziel"} />
                   <span className="w-40 shrink-0 text-right text-xs tabular-nums text-slate-700">
                     {doyToDate(s.start_doy)} – {doyToDate(s.ende_doy)} · {s.laenge ?? "–"} Tage
                   </span>
@@ -162,9 +163,9 @@ export default function KlimacheckPage() {
             {r.saison.delta_laenge_tage != null && (
               <p className="mt-3 text-sm font-medium text-slate-800">
                 {r.saison.delta_laenge_tage >= 0 ? "▲" : "▼"} Saisonfenster verändert sich um{" "}
-                <strong>{Math.abs(r.saison.delta_laenge_tage)} Tage</strong> gegenüber 1961–1990
-                {r.saison.p3.laenge_min != null && (
-                  <span className="text-xs font-normal text-slate-500"> (Modell-Band: {r.saison.p3.laenge_min}–{r.saison.p3.laenge_max} Tage Länge)</span>
+                <strong>{Math.abs(r.saison.delta_laenge_tage)} Tage</strong> bis 2050 (gegenüber heute)
+                {r.saison.ziel.laenge_min != null && (
+                  <span className="text-xs font-normal text-slate-500"> (Modell-Band: {r.saison.ziel.laenge_min}–{r.saison.ziel.laenge_max} Tage Länge)</span>
                 )}
               </p>
             )}
@@ -172,13 +173,12 @@ export default function KlimacheckPage() {
 
           <section className="mb-6 overflow-x-auto rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
             <h2 className="mb-3 text-lg font-semibold text-slate-900">Kenntage pro Jahr</h2>
-            <table className="w-full min-w-105 text-sm">
+            <table className="w-full min-w-95 text-sm">
               <thead>
                 <tr className="text-left text-xs uppercase tracking-wide text-slate-500">
                   <th className="pb-2">Indikator</th>
-                  <th className="pb-2 text-right">{r.perioden.p1}</th>
-                  <th className="pb-2 text-right">{r.perioden.p2}</th>
-                  <th className="pb-2 text-right">{r.perioden.p3}</th>
+                  <th className="pb-2 text-right">heute ({r.perioden.heute})</th>
+                  <th className="pb-2 text-right">um 2050</th>
                 </tr>
               </thead>
               <tbody>
@@ -191,11 +191,10 @@ export default function KlimacheckPage() {
                         {meta.chance && <span className="text-xs text-emerald-700">Chance</span>}
                         <div className="text-xs text-slate-400">{meta.hint}</div>
                       </td>
-                      <td className="py-2 text-right tabular-nums">{i.p1}</td>
-                      <td className="py-2 text-right tabular-nums">{i.p2}</td>
+                      <td className="py-2 text-right tabular-nums">{i.heute}</td>
                       <td className="py-2 text-right tabular-nums">
-                        <strong>{i.p3.med ?? "–"}</strong>{" "}
-                        <span className="text-xs text-slate-400">[{i.p3.min}–{i.p3.max}]</span>
+                        <strong>{i.ziel.med ?? "–"}</strong>{" "}
+                        <span className="text-xs text-slate-400">[{i.ziel.min}–{i.ziel.max}]</span>
                       </td>
                     </tr>
                   );
@@ -203,7 +202,7 @@ export default function KlimacheckPage() {
               </tbody>
             </table>
             <p className="mt-2 text-xs text-slate-500">
-              2036–2050: Median aus {r.modelle.length} CMIP6-Modellen, [Band] = Modell-Spannweite.
+              „heute" = Klimanormalperiode {r.perioden.heute}. „um 2050" = Median aus {r.modelle.length} CMIP6-Modellen (2036–2050), [Band] = Modell-Spannweite.
             </p>
           </section>
 
@@ -248,7 +247,7 @@ export default function KlimacheckPage() {
             <DisclaimerBox
               items={[
                 "Erstcheck, kein Klimagutachten: CMIP6-Projektionen liegen auf einem ~10–25-km-Raster — kleinräumige Effekte (Küste, Berg, Stadt) bildet das Modell nur begrenzt ab.",
-                `Projektion = Median aus ${r.modelle.length} Modellen (${r.modelle.join(", ")}), Spannweite wird mit angezeigt; Zeitraum 2036–2050 (die frei verfügbaren CMIP6-Daten enden 2050).`,
+                `Vergleich: Klimanormalperiode 1991–2020 („heute") gegen die Projektion 2036–2050 (die frei verfügbaren CMIP6-Daten enden 2050). Projektion = Median aus ${r.modelle.length} Modellen (${r.modelle.join(", ")}) mit angezeigter Spannweite.`,
                 "Badesaison/Aktivtage sind Temperatur-Proxys (Lufttemperatur, kein Wassertemperatur-/Schneemodell).",
                 "Handlungsfelder werden KI-gestützt ausschließlich aus den hier berechneten Zahlen und einem kuratierten Maßnahmenkatalog abgeleitet.",
                 "Daten: ERA5 (ECMWF/Copernicus) & CMIP6 HighResMIP via Open-Meteo (CC-BY 4.0).",
