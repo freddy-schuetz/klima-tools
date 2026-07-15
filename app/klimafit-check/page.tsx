@@ -44,6 +44,25 @@ function doyToDate(doy: number | null) {
   return d.toLocaleDateString("de-DE", { day: "numeric", month: "short" });
 }
 
+// Saison-Balken: zeichnet die Saison als Segment(e). Winter läuft über den
+// Jahreswechsel (Ende < Start) → zwei Segmente (Start→Jahresende, Jahresanfang→Ende).
+function SeasonBar({ s, highlight }: { s: SaisonP; highlight: boolean }) {
+  const color = highlight ? "bg-brand-accent" : "bg-slate-400";
+  if (s.start_doy == null || s.ende_doy == null) return <div className="h-4 flex-1 rounded bg-slate-100" />;
+  const segs: [number, number][] = s.ende_doy >= s.start_doy
+    ? [[s.start_doy, s.ende_doy]]
+    : [[s.start_doy, 365], [1, s.ende_doy]];
+  return (
+    <div className="relative h-4 flex-1 rounded bg-slate-100">
+      {segs.map(([a, b], i) => (
+        <div key={i} className={`absolute top-0 h-4 rounded ${color}`}
+          style={{ left: `${(a / 366) * 100}%`, width: `${(Math.max(1, b - a) / 366) * 100}%` }}
+          title={`${doyToDate(s.start_doy)} – ${doyToDate(s.ende_doy)}`} />
+      ))}
+    </div>
+  );
+}
+
 export default function KlimacheckPage() {
   const [address, setAddress] = useState("");
   const [destTyp, setDestTyp] = useState("wander");
@@ -133,15 +152,7 @@ export default function KlimacheckPage() {
               {([["p1", r.saison.p1], ["p2", r.saison.p2], ["p3", r.saison.p3]] as const).map(([p, s]) => (
                 <div key={p} className="flex items-center gap-3">
                   <span className="w-40 shrink-0 text-xs text-slate-500">{r.perioden[p]}</span>
-                  <div className="h-4 flex-1 rounded bg-slate-100">
-                    {s.start_doy != null && s.ende_doy != null && (
-                      <div
-                        className={`h-4 rounded ${p === "p3" ? "bg-brand-accent" : "bg-slate-400"}`}
-                        style={{ marginLeft: `${(s.start_doy / 366) * 100}%`, width: `${(Math.max(1, s.ende_doy - s.start_doy) / 366) * 100}%` }}
-                        title={`${doyToDate(s.start_doy)} – ${doyToDate(s.ende_doy)}`}
-                      />
-                    )}
-                  </div>
+                  <SeasonBar s={s} highlight={p === "p3"} />
                   <span className="w-40 shrink-0 text-right text-xs tabular-nums text-slate-700">
                     {doyToDate(s.start_doy)} – {doyToDate(s.ende_doy)} · {s.laenge ?? "–"} Tage
                   </span>
