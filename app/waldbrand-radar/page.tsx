@@ -27,6 +27,7 @@ type Region = {
   hotspots?: Hotspot[];
   waermesignale_gesamt?: number | null;  // inkl. Industrie/Landwirtschaft
   radius_km?: number;
+  simulation?: boolean;                  // synthetische Demo-Daten — immer sichtbar kennzeichnen
 };
 
 const STUFE_HEX: Record<number, string> = { 1: "#6ee7b7", 2: "#bef264", 3: "#fbbf24", 4: "#f97316", 5: "#dc2626" };
@@ -116,6 +117,15 @@ export default function WaldbrandRadarPage() {
 
       {data && (
         <>
+          {data.regionen.some((r) => r.simulation) && (
+            <div className="mb-4 rounded-xl border-2 border-violet-300 bg-violet-50 p-4 text-sm text-violet-950">
+              <span className="font-bold">⚠️ Demonstrations-Datensatz enthalten:</span> Eine Region ist mit
+              „(SIMULATION)" gekennzeichnet und zeigt <strong>synthetische</strong> Satelliten-Wärmesignale.
+              Sie dient nur dazu, den Alarm- und Freigabe-Ablauf vorzuführen. Alle übrigen Regionen zeigen
+              ausschließlich echte DWD- und NASA-FIRMS-Daten.
+            </div>
+          )}
+
           {hoch.length > 0 && (
             <div className="mb-6 rounded-xl border border-orange-300 bg-orange-50 p-4 text-sm text-orange-950">
               <span className="font-semibold">⚠️ Hohe Waldbrandgefahr heute:</span>{" "}
@@ -165,9 +175,14 @@ export default function WaldbrandRadarPage() {
                           Warnbanner aktiv
                         </span>
                       )}
+                      {r.simulation && (
+                        <span className="rounded-full bg-violet-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white ring-2 ring-violet-300">
+                          ⚠️ Simulation — keine echten Messdaten
+                        </span>
+                      )}
                       {(r.hotspots_48h ?? 0) > 0 && (
-                        <span className="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-                          🛰️ {r.hotspots_48h} Wärmesignal{r.hotspots_48h === 1 ? "" : "e"} auf Waldfläche
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white ${r.simulation ? "bg-violet-500" : "bg-red-600"}`}>
+                          🛰️ {r.hotspots_48h} Wärmesignal{r.hotspots_48h === 1 ? "" : "e"} auf Waldfläche{r.simulation ? " (simuliert)" : ""}
                         </span>
                       )}
                     </div>
