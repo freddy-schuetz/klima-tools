@@ -23,8 +23,10 @@ type Region = {
   forecast: number[];
   termin: string;
   banner_aktiv: boolean;
-  hotspots_48h: number | null;
+  hotspots_48h: number | null;      // nur auf Waldfläche bestätigte Wärmesignale
   hotspots?: Hotspot[];
+  waermesignale_gesamt?: number | null;  // inkl. Industrie/Landwirtschaft
+  radius_km?: number;
 };
 
 const STUFE_HEX: Record<number, string> = { 1: "#6ee7b7", 2: "#bef264", 3: "#fbbf24", 4: "#f97316", 5: "#dc2626" };
@@ -165,13 +167,19 @@ export default function WaldbrandRadarPage() {
                       )}
                       {(r.hotspots_48h ?? 0) > 0 && (
                         <span className="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-                          🛰️ {r.hotspots_48h} aktive{r.hotspots_48h === 1 ? "s" : ""} Feuer (48 h)
+                          🛰️ {r.hotspots_48h} Wärmesignal{r.hotspots_48h === 1 ? "" : "e"} auf Waldfläche
                         </span>
                       )}
                     </div>
                     <div className="mt-0.5 text-xs text-slate-500">
                       {r.bundesland} · DWD-Station {r.station_name}
-                      {r.hotspots_48h != null && r.hotspots_48h === 0 && " · keine Satelliten-Hotspots (48 h)"}
+                      {r.hotspots_48h === 0 && (
+                        <> · keine Satelliten-Wärmesignale auf Waldfläche ({r.radius_km ?? 50} km, 48 h)
+                          {(r.waermesignale_gesamt ?? 0) > 0 && (
+                            <span className="text-slate-400"> — {r.waermesignale_gesamt} Signal(e) im Umkreis stammen von Industrie/Landwirtschaft</span>
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
                   <ForecastBand forecast={r.forecast} />
@@ -186,7 +194,8 @@ export default function WaldbrandRadarPage() {
                 "Der Waldbrandgefahrenindex (WBI) des DWD ist ein meteorologischer Index — KEINE amtliche Warnung und keine Wegesperrung. Verbindlich informieren Landesbehörden und Nationalparkverwaltungen.",
                 "Warnbanner werden nie automatisch veröffentlicht: Bei Stufe 4+ erhält die Redaktion eine Freigabe-Mail; erst nach Klick geht das Banner live. Fällt die Stufe unter 4, deaktiviert es sich automatisch.",
                 "Jede Region wird über eine repräsentative DWD-Station abgebildet — kleinräumige Unterschiede (Exposition, Totholz) bildet der Index nicht ab.",
-                "Datenquellen: DWD Open Data (CC-BY, täglich gegen 04:20 Uhr, Vorhersage heute + 6 Tage) und NASA FIRMS (aktive Feuer aus VIIRS-Satellitendaten, letzte 48 h, Umkreis 30 km). Satelliten erfassen nur ausreichend große/heiße Feuer — 0 Hotspots ist kein Unbedenklichkeits-Nachweis.",
+                "Satelliten-Wärmesignale werden gefiltert: In Mitteleuropa stammen die allermeisten VIIRS-Treffer von Industrie (Stahlwerke, Fackeln) und Erntefeuern, nicht von Waldbränden. Angezeigt werden deshalb nur Signale, die per OpenStreetMap-Landnutzung auf Waldfläche liegen; der Rest wird separat als Industrie/Landwirtschaft ausgewiesen.",
+                "Datenquellen: DWD Open Data (CC-BY, täglich gegen 04:20 Uhr, Vorhersage heute + 6 Tage) und NASA FIRMS (VIIRS, letzte 48 h, Umkreis 50 km). Satelliten erfassen nur ausreichend große/heiße Feuer — 0 Signale sind kein Unbedenklichkeits-Nachweis.",
               ]}
             />
           </div>
