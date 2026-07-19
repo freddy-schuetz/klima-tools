@@ -137,29 +137,27 @@ export default function WaldbrandRadarPage() {
           <div className="mb-6">
             <MarkerMap
               maxZoom={7}
-              markers={[
-                ...data.regionen.map((r): MapMarker => ({
-                  lat: r.lat,
-                  lng: r.lng,
-                  color: STUFE_HEX[r.stufe_heute] ?? "#94a3b8",
-                  size: 16,
-                  popupHtml: `<strong>${r.region}</strong><br>Waldbrandgefahr Stufe ${r.stufe_heute} (${STUFEN[r.stufe_heute]?.label ?? ""})<br>DWD-Station ${r.station_name}`,
-                })),
-                ...data.regionen.flatMap((r) =>
-                  (r.hotspots ?? []).map((h): MapMarker => ({
-                    lat: h.lat,
-                    lng: h.lng,
-                    color: "#dc2626",
-                    size: 8,
-                    ring: false,
-                    popupHtml: `🛰️ Aktives Feuer (Satellit)<br>${h.datum} · Intensität ${h.frp} MW`,
-                  }))
-                ),
-              ]}
+              markers={data.regionen.map((r): MapMarker => ({
+                lat: r.lat,
+                lng: r.lng,
+                color: STUFE_HEX[r.stufe_heute] ?? "#94a3b8",
+                size: 16,
+                popupHtml: `<strong>${r.region}</strong><br>Waldbrandgefahr Stufe ${r.stufe_heute} (${STUFEN[r.stufe_heute]?.label ?? ""})<br>DWD-Station ${r.station_name}`,
+              }))}
+              heat={data.regionen.flatMap((r) =>
+                (r.hotspots ?? []).map((h) => ({ lat: h.lat, lng: h.lng, weight: h.frp || 1 }))
+              )}
             />
-            <p className="mt-1 text-xs text-slate-500">
-              Große Marker = Regionen (Farbe = DWD-Gefahrenstufe) · kleine rote Punkte = aktive Feuer (NASA FIRMS, 48 h) · Karte: © OpenStreetMap
-            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-3 w-3 rounded-full border-2 border-white bg-orange-400 shadow" /> Region (Farbe = DWD-Gefahrenstufe)
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-3.5 w-3.5 rounded-full" style={{ background: "radial-gradient(circle, #fff7ed 10%, rgba(239,68,68,.85) 45%, rgba(254,240,138,.35) 75%, transparent 100%)" }} />
+                Glutfläche = Wärmesignal auf Waldfläche (Intensität nach FRP)
+              </span>
+              <span>Karte: © OpenStreetMap</span>
+            </div>
           </div>
 
           <ul className="mb-8 space-y-2">
