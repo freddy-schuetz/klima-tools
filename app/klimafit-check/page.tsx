@@ -5,6 +5,7 @@ import { usePolling } from "@/lib/usePolling";
 import AmpelBadge from "@/components/AmpelBadge";
 import DisclaimerBox from "@/components/DisclaimerBox";
 import AboutSection from "@/components/AboutSection";
+import { DESTINATIONEN, TYP_LABEL, TYP_REIHENFOLGE } from "@/lib/destinationen";
 
 type SaisonP = { start_doy: number | null; ende_doy: number | null; laenge: number; laenge_min?: number; laenge_max?: number };
 type Ziel = { med: number | null; min: number; max: number };
@@ -21,13 +22,6 @@ type Result = {
   chancen?: string[];
   fazit?: string;
 };
-
-const TYPEN = [
-  { key: "bade", label: "🏖️ Badedestination" },
-  { key: "wander", label: "🥾 Wander-/Raddestination" },
-  { key: "winter", label: "⛷️ Winterdestination" },
-  { key: "stadt", label: "🏙️ Städtedestination" },
-];
 
 const IND_LABEL: Record<string, { label: string; hint: string; chance?: boolean }> = {
   hitzetage: { label: "Hitzetage", hint: "Tmax ≥ 30 °C" },
@@ -65,8 +59,9 @@ function SeasonBar({ s, highlight }: { s: SaisonP; highlight: boolean }) {
 }
 
 export default function KlimacheckPage() {
-  const [address, setAddress] = useState("");
-  const [destTyp, setDestTyp] = useState("wander");
+  // Auswahl kodiert Typ und Ort, weil dieselbe Destination in mehreren Typen
+  // vorliegen kann (Garmisch-Partenkirchen etwa als Wander- und als Winterziel).
+  const [auswahl, setAuswahl] = useState(`${DESTINATIONEN[0].typ}|${DESTINATIONEN[0].ort}`);
   const [token, setToken] = useState<string | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
   const { status, result, errorMessage } = usePolling<Result>(token);
@@ -75,11 +70,25 @@ export default function KlimacheckPage() {
     e.preventDefault();
     setStartError(null);
     setToken(null);
+    const [typ, ort] = auswahl.split("|");
+    const ziel = DESTINATIONEN.find((d) => d.typ === typ && d.ort === ort);
+    if (!ziel) {
+      setStartError("Unbekannte Destination.");
+      return;
+    }
     try {
       const res = await fetch("/api/klimacheck/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address, dest_typ: destTyp }),
+        // Koordinaten mitschicken: dann entfällt der Geocoding-Aufruf und der
+        // Cache-Treffer ist garantiert.
+        body: JSON.stringify({
+          address: ziel.ort,
+          dest_typ: ziel.typ,
+          lat: ziel.lat,
+          lng: ziel.lng,
+          bundesland: ziel.bundesland,
+        }),
       });
       const data = await res.json();
       if (!res.ok || !data.token) throw new Error(data.error || "start_failed");
@@ -104,37 +113,40 @@ export default function KlimacheckPage() {
         </p>
       </header>
 
-      <form onSubmit={start} className="mb-8 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-        <label className="mb-1 block text-sm font-medium text-slate-700">Ort / Destination</label>
-        <input
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          placeholder="z. B. Sankt Peter-Ording"
-          required
-          minLength={2}
-          className="mb-4 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-accent focus:outline-none"
-        />
-        <label className="mb-1 block text-sm font-medium text-slate-700">Destinationstyp</label>
-        <div className="mb-4 flex flex-wrap gap-2">
-          {TYPEN.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setDestTyp(t.key)}
-              className={`rounded-full px-3 py-1.5 text-sm ring-1 transition ${
-                destTyp === t.key ? "bg-brand text-white ring-brand" : "bg-white text-slate-700 ring-slate-300 hover:ring-brand-accent"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+      <form onSubmit={start} className="mb-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+        <label htmlFor="destination" className="mb-1 block text-sm font-medium text-slate-700">
+          Destination auswählen
+        </label>
+        <select
+          id="destination"
+          value={auswahl}
+          onChange={(e) => setAuswahl(e.target.value)}
+          className="mb-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-accent focus:outline-none"
+        >
+          {TYP_REIHENFOLGE.map((typ) => {
+            const gruppe = DESTINATIONEN.filter((d) => d.typ === typ);
+            if (!gruppe.length) return null;
+            return (
+              <optgroup key={typ} label={TYP_LABEL[typ]}>
+                {gruppe.map((d) => (
+                  <option key={`${d.typ}-${d.ort}`} value={`${d.typ}|${d.ort}`}>
+                    {d.ort} ({d.bundesland})
+                  </option>
+                ))}
+              </optgroup>
+            );
+          })}
+        </select>
+        <p className="mb-4 text-xs text-slate-500">
+          {DESTINATIONEN.length} Destinationen in vier Typen. Die Auswertung ist für sie vorberechnet und
+          erscheint in Sekunden.
+        </p>
         <button
           type="submit"
           disabled={running}
           className="rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-white transition hover:bg-brand-accent disabled:opacity-50"
         >
-          {running ? "Berechne … (ca. 20 s)" : "Klimacheck starten"}
+          {running ? "Lade …" : "Klimacheck anzeigen"}
         </button>
         {startError && <p className="mt-2 text-sm text-red-700">{startError}</p>}
         {(status === "error" || status === "timeout" || status === "not_found") && (
@@ -142,7 +154,17 @@ export default function KlimacheckPage() {
         )}
       </form>
 
-      {running && <div className="mb-8 animate-pulse text-sm text-slate-500">Hole 30 Jahre Messdaten + 3 Klimamodelle …</div>}
+      {/* Warum keine freie Ortseingabe: der Wetterdienst begrenzt die Abfragen pro
+          Serveradresse, und eine frische Berechnung kostet rund hundert davon. */}
+      <p className="mb-8 rounded-xl bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-600 ring-1 ring-slate-200">
+        <strong className="text-slate-800">Warum eine feste Auswahl?</strong> Eine Destination neu
+        durchzurechnen kostet rund hundert Abfragen beim Wetterdienst. Bei freier Ortseingabe lief die Demo
+        deshalb regelmäßig in dessen Kontingentgrenze und zeigte Fehler statt Ergebnissen. Für diese
+        Destinationen liegt die Auswertung fertig vor. Für Ihre eigene Destination erstellen wir den
+        Tiefen-Report — siehe unten.
+      </p>
+
+      {running && <div className="mb-8 animate-pulse text-sm text-slate-500">Lade vorberechnete Auswertung …</div>}
 
       {r && status === "done" && (
         <>
@@ -257,7 +279,98 @@ export default function KlimacheckPage() {
         </>
       )}
 
+      <TiefenReportSektion />
+
       <AboutSection mailSubject="Destinations-Klimacheck" />
     </main>
+  );
+}
+
+// Zweite Stufe: der Tiefen-Report. Bewusst als eigene Kategorie unter dem
+// Quick-Check, weil er ein anderes Produkt ist — andere Datenbasis, anderer
+// Umfang, und er wird pro Interessent freigeschaltet statt selbst bedient.
+const DEMO_REPORTS: { ort: string; typ: string; kreis: string; kern: string; token?: string }[] = [
+  {
+    ort: "Winterberg",
+    typ: "Mittelgebirge · Wintersport",
+    kreis: "Hochsauerlandkreis",
+    kern: "Wie lange trägt die Beschneiung? Naturschnee ist auf der höchsten verfügbaren Höhenstufe schon heute knapp und geht im Hochemissionspfad bis Mitte des Jahrhunderts auf null.",
+  },
+  {
+    ort: "Sankt Peter-Ording",
+    typ: "Küste · Baden",
+    kreis: "Nordfriesland",
+    kern: "Längere Badesaison als Chance, steigende Hitzebelastung und Extremwetter als Risiko — verschnitten mit der ausgeprägtesten Saisonspitze der drei Demos.",
+  },
+  {
+    ort: "Garmisch-Partenkirchen",
+    typ: "Alpen · Ganzjahr",
+    kreis: "Garmisch-Partenkirchen",
+    kern: "Die Zweiteilung des Gebiets: Die Ortslage verliert ihre Naturschneetage vollständig, die Hochlagen halten deutlich länger.",
+  },
+];
+
+function TiefenReportSektion() {
+  return (
+    <section className="mt-12 rounded-2xl border-2 border-brand/20 bg-white p-6 shadow-sm">
+      <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-accent">Stufe 2</p>
+      <h2 className="mb-2 text-2xl font-bold text-brand">Tiefen-Report für Ihre Destination</h2>
+      <p className="mb-5 max-w-2xl text-sm leading-relaxed text-slate-600">
+        Der Quick-Check oben zeigt das Klimasignal. Der Tiefen-Report beantwortet die Frage dahinter:{" "}
+        <strong>Wo trifft die Klimaänderung Ihre Saisonkurve?</strong> Dafür verschneiden wir amtliche
+        Klimaprojektionen für Ihren Landkreis mit Ihren amtlichen Monats-Übernachtungszahlen und leiten
+        daraus Handlungsoptionen ab — jede mit Quelle, Fallbeispiel und der Angabe, wer sie umsetzen kann.
+      </p>
+
+      <div className="mb-5 grid gap-3 sm:grid-cols-3">
+        {[
+          { titel: "Amtliche Datenbasis", text: "Klimaausblicke des Helmholtz-Zentrums Hereon für 401 Landkreise, Schneeindikatoren des Copernicus-Dienstes, Beherbergungsstatistik der Statistischen Ämter." },
+          { titel: "Zwei Szenarien, zwei Zeitfenster", text: "Mittlerer Pfad und Hochemissionspfad, jeweils für 2036–2065 und 2069–2098 — getrennt ausgewiesen, nie vermischt." },
+          { titel: "Auf Ihre Struktur bezogen", text: "Ein 2-Minuten-Profil steuert, welche Kapitel Sie bekommen: Angebotsschwerpunkte, wichtigste Monate, Verwendungszweck." },
+        ].map((k) => (
+          <div key={k.titel} className="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200">
+            <p className="mb-1 text-sm font-semibold text-slate-900">{k.titel}</p>
+            <p className="text-xs leading-relaxed text-slate-600">{k.text}</p>
+          </div>
+        ))}
+      </div>
+
+      <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+        Beispiel-Reports
+      </h3>
+      <ul className="mb-5 space-y-2">
+        {DEMO_REPORTS.map((d) => (
+          <li key={d.ort} className="rounded-xl bg-white p-4 ring-1 ring-slate-200">
+            <div className="mb-1 flex flex-wrap items-baseline gap-x-3">
+              <span className="font-semibold text-slate-900">{d.ort}</span>
+              <span className="text-xs text-slate-500">{d.typ}</span>
+            </div>
+            <p className="mb-2 text-sm leading-relaxed text-slate-600">{d.kern}</p>
+            {d.token ? (
+              <a
+                href={`/klimafit-check/report/${d.token}`}
+                className="text-sm font-semibold text-brand-accent underline-offset-2 hover:underline"
+              >
+                Report ansehen →
+              </a>
+            ) : (
+              <span className="text-xs text-slate-400">Report wird gerade erstellt</span>
+            )}
+          </li>
+        ))}
+      </ul>
+
+      <a
+        href="mailto:f.schuetz@posteo.de?subject=Tiefen-Report%20Destinations-Klimacheck&body=Guten%20Tag%2C%0A%0Aich%20interessiere%20mich%20f%C3%BCr%20einen%20Tiefen-Report%20f%C3%BCr%20unsere%20Destination.%0A%0ADestination%3A%20%0AAnsprechpartner%3A%20%0A"
+        className="inline-block rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-white transition hover:bg-brand-accent"
+      >
+        Tiefen-Report anfragen
+      </a>
+      <p className="mt-3 text-xs leading-relaxed text-slate-500">
+        Der Report ersetzt kein Klimaanpassungskonzept nach dem UBA-Leitfaden und keine Vollberatung. Er
+        liefert die Daten- und Faktenbasis für Betroffenheitsanalyse und Gremienvorlage. Alle Szenarien sind
+        Bandbreiten möglicher Entwicklungen, keine Vorhersagen.
+      </p>
+    </section>
   );
 }
