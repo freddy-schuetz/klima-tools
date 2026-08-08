@@ -295,18 +295,28 @@ const DEMO_REPORTS: { ort: string; typ: string; kreis: string; kern: string; tok
     typ: "Mittelgebirge · Wintersport",
     kreis: "Hochsauerlandkreis",
     kern: "Wie lange trägt die Beschneiung? Naturschnee ist auf der höchsten verfügbaren Höhenstufe schon heute knapp und geht im Hochemissionspfad bis Mitte des Jahrhunderts auf null.",
+    token: "oAHVFl4s6vYujdT41KTj0A",
   },
   {
     ort: "Sankt Peter-Ording",
     typ: "Küste · Baden",
     kreis: "Nordfriesland",
-    kern: "Längere Badesaison als Chance, steigende Hitzebelastung und Extremwetter als Risiko — verschnitten mit der ausgeprägtesten Saisonspitze der drei Demos.",
+    kern: "Längere Badesaison als Chance, steigende Hitzebelastung und Extremwetter als Risiko — verschnitten mit der ausgeprägtesten Saisonspitze der vier Demos.",
+    token: "tJLEG1uXcNim97uWWiBc7g",
   },
   {
     ort: "Garmisch-Partenkirchen",
     typ: "Alpen · Ganzjahr",
     kreis: "Garmisch-Partenkirchen",
     kern: "Die Zweiteilung des Gebiets: Die Ortslage verliert ihre Naturschneetage vollständig, die Hochlagen halten deutlich länger.",
+    token: "mJ42HJhI_YBh2-MAVS-Njg",
+  },
+  {
+    ort: "Lübeck",
+    typ: "Stadt · Ganzjahr mit Küste",
+    kreis: "Lübeck, Kreisfreie Stadt",
+    kern: "Städtetourismus ist weniger saisonabhängig — dafür trifft steigende Hitzebelastung hier auf Fußgängerzonen und Außengastronomie, und mit Travemünde hängt ein Badebetrieb daran.",
+    token: "aqHkerPuWX7LnxFXCoVt6g",
   },
 ];
 
