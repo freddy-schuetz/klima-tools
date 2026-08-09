@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from "react";
 import Monatsmatrix, { type MatrixT } from "@/components/report/Monatsmatrix";
 import SaisonExposition, { type SaisonExpositionT } from "@/components/report/SaisonExposition";
+import Analogon, { type AnalogonT } from "@/components/report/Analogon";
 import { SzenarienPaar, type WertT } from "@/components/report/Kennzahl";
 import { Luecken, Quellenverzeichnis, Validierungstabelle, type QuelleT, type ValidierungT } from "@/components/report/Methodik";
 
@@ -25,7 +26,9 @@ type ReportJson = {
     };
     zukunft: Record<string, { label: string; einheit: string; werte: WertT[] }>;
     matrix: { verfuegbar: boolean; verschneidungen?: (MatrixT | SaisonExpositionT)[]; grund?: string };
-    segmente: { aktiv: string[]; typ?: string };
+    segmente: { aktiv: string[]; typ?: string; titel?: string; leitfrage?: string; text?: string };
+    analogon: AnalogonT;
+    naechste_schritte: { titel?: string; text?: string; schritte?: string[]; anschluss?: string };
     massnahmen: unknown[];
     methodik: {
       quellen: QuelleT[];
@@ -183,6 +186,28 @@ export default function TiefenReportPage({ params }: { params: Promise<{ token: 
             .map((m, i) => (
               <Monatsmatrix key={i} matrix={m} />
             ))}
+        </section>
+      )}
+
+      {/* 7 — Klima-Analogon */}
+      {k.analogon?.verfuegbar && (
+        <section className="mb-10">
+          <h2 className="mb-1 text-xl font-bold text-brand">7 · Wo liegt Ihr Klima-Zwilling?</h2>
+          <Analogon analogon={k.analogon} />
+        </section>
+      )}
+
+      {/* 9 — Nächste Schritte */}
+      {k.naechste_schritte?.titel && (
+        <section className="mb-10 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+          <h2 className="mb-2 text-xl font-bold text-brand">9 · {k.naechste_schritte.titel}</h2>
+          <p className="mb-3 text-sm leading-relaxed text-slate-700">{k.naechste_schritte.text}</p>
+          <ol className="mb-3 list-decimal space-y-1.5 pl-5 text-sm text-slate-700">
+            {(k.naechste_schritte.schritte ?? []).map((s, i) => (
+              <li key={i}>{s}</li>
+            ))}
+          </ol>
+          <p className="text-xs text-slate-500">{k.naechste_schritte.anschluss}</p>
         </section>
       )}
 
