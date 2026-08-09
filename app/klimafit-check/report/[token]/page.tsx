@@ -17,7 +17,8 @@ import { use, useEffect, useMemo, useState } from "react";
 import ExpositionsUebersicht from "@/components/report/ExpositionsUebersicht";
 import SaisonExposition, { type SaisonExpositionT } from "@/components/report/SaisonExposition";
 import Analogon, { type AnalogonT } from "@/components/report/Analogon";
-import { SzenarienPaar, type WertT } from "@/components/report/Kennzahl";
+import { type WertT } from "@/components/report/Kennzahl";
+import Kennzahlentabelle from "@/components/report/Kennzahlentabelle";
 import {
   Luecken,
   Quellenverzeichnis,
@@ -361,9 +362,7 @@ export default function TiefenReportPage({ params }: { params: Promise<{ token: 
             unterzeile={r.pflichthinweise.szenarien}
             anzahl={Object.keys(k.zukunft).length}
           >
-            {Object.entries(k.zukunft).map(([key, gruppe]) => (
-              <SzenarienPaar key={key} titel={gruppe.label} werte={gruppe.werte} />
-            ))}
+            <Kennzahlentabelle gruppen={k.zukunft} />
           </Aufklappbar>
         )}
 
