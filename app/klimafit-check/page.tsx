@@ -371,11 +371,12 @@ function TiefenReportSektion() {
       </ul>
 
       <a
-        href="mailto:f.schuetz@posteo.de?subject=Tiefen-Report%20Destinations-Klimacheck&body=Guten%20Tag%2C%0A%0Aich%20interessiere%20mich%20f%C3%BCr%20einen%20Tiefen-Report%20f%C3%BCr%20unsere%20Destination.%0A%0ADestination%3A%20%0AAnsprechpartner%3A%20%0A"
+        href="/klimafit-check/tiefen-report"
         className="inline-block rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-white transition hover:bg-brand-accent"
       >
-        Tiefen-Report anfragen
+        Tiefen-Report anfordern
       </a>
+      <span className="ml-3 text-xs text-slate-500">2 Minuten Profil-Angaben</span>
       <p className="mt-3 text-xs leading-relaxed text-slate-500">
         Der Report ersetzt kein Klimaanpassungskonzept nach dem UBA-Leitfaden und keine Vollberatung. Er
         liefert die Daten- und Faktenbasis für Betroffenheitsanalyse und Gremienvorlage. Alle Szenarien sind
