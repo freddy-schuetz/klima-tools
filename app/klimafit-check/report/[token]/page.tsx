@@ -14,7 +14,7 @@
 "use client";
 
 import { use, useEffect, useMemo, useState } from "react";
-import Monatsmatrix from "@/components/report/Monatsmatrix";
+import ExpositionsUebersicht from "@/components/report/ExpositionsUebersicht";
 import SaisonExposition, { type SaisonExpositionT } from "@/components/report/SaisonExposition";
 import Analogon, { type AnalogonT } from "@/components/report/Analogon";
 import { SzenarienPaar, type WertT } from "@/components/report/Kennzahl";
@@ -255,13 +255,11 @@ export default function TiefenReportPage({ params }: { params: Promise<{ token: 
           {(auswahl.restExpositionen.length > 0 || auswahl.saisonal.length > 0) && (
             <Aufklappbar
               titel="Alle Expositionen im Detail"
-              unterzeile="jede Kennzahl in beiden Szenarien und beiden Zeitfenstern, als Monatstabelle"
+              unterzeile="jede Kennzahl in beiden Szenarien und beiden Zeitfenstern"
               anzahl={auswahl.restExpositionen.length + auswahl.saisonal.length}
             >
               {auswahl.saisonal.length > 0 && <SaisonExposition eintraege={auswahl.saisonal} />}
-              {auswahl.restExpositionen.map((v, i) => (
-                <Monatsmatrix key={i} matrix={v} />
-              ))}
+              <ExpositionsUebersicht eintraege={auswahl.restExpositionen} />
             </Aufklappbar>
           )}
         </section>
