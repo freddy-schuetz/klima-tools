@@ -81,7 +81,8 @@ type Antwort = { status: string; ergebnis?: ReportJson; fehler?: string; error?:
 
 /** Wie viele Elemente der Kurzreport zeigt, bevor der Rest in den Detailteil wandert. */
 const KURZ_ZEITSTRAHLEN = 3;
-const KURZ_EXPOSITIONEN = 4;
+const KURZ_MONATLICH = 2;
+const KURZ_SAISONAL = 4;
 
 export default function TiefenReportPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
@@ -134,13 +135,29 @@ export default function TiefenReportPage({ params }: { params: Promise<{ token: 
       const bisher = staerkste.get(v.indikator);
       if (!bisher || gewicht(v) > gewicht(bisher)) staerkste.set(v.indikator, v);
     }
-    const kurzExpositionen = [...staerkste.values()]
+    const kurzMonatlich = [...staerkste.values()]
       .sort(
         (a, b) =>
           (b.summe.exponierter_anteil_chance + b.summe.exponierter_anteil_risiko) -
           (a.summe.exponierter_anteil_chance + a.summe.exponierter_anteil_risiko),
       )
-      .slice(0, KURZ_EXPOSITIONEN);
+      .slice(0, KURZ_MONATLICH);
+
+    // Die saisonalen Befunde sind fuer eine Wintersportdestination die
+    // wichtigsten ueberhaupt — Schnee und Beschneiung liegen ausschliesslich als
+    // Jahres- bzw. Saisonwert vor. Sie gehoeren deshalb in den Kurzreport und
+    // nicht in den Anhang. Gewicht: betroffener Anteil mal relative Aenderung.
+    const gewicht = (e: SaisonExpositionT) =>
+      (e.anteil_uebernachtungen ?? 0) * Math.abs(e.delta_relativ ?? 0);
+    const staerksteSaisonal = new Map<string, SaisonExpositionT>();
+    for (const e of saisonal) {
+      if (e.richtung === "neutral") continue;
+      const bisher = staerksteSaisonal.get(e.indikator);
+      if (!bisher || gewicht(e) > gewicht(bisher)) staerksteSaisonal.set(e.indikator, e);
+    }
+    const kurzSaisonal = [...staerksteSaisonal.values()]
+      .sort((a, b) => gewicht(b) - gewicht(a))
+      .slice(0, KURZ_SAISONAL);
 
     return {
       strahlen,
@@ -148,8 +165,10 @@ export default function TiefenReportPage({ params }: { params: Promise<{ token: 
       restStrahlen: strahlen.slice(KURZ_ZEITSTRAHLEN),
       monatlich,
       saisonal,
-      kurzExpositionen,
-      restExpositionen: monatlich.filter((v) => !kurzExpositionen.includes(v)),
+      kurzMonatlich,
+      kurzSaisonal,
+      restMonatlich: monatlich.filter((v) => !kurzMonatlich.includes(v)),
+      restSaisonal: saisonal.filter((e) => !kurzSaisonal.includes(e)),
     };
   }, [r]);
 
@@ -242,24 +261,24 @@ export default function TiefenReportPage({ params }: { params: Promise<{ token: 
       )}
 
       {/* 2 — Wo es die Saison trifft */}
-      {auswahl.kurzExpositionen.length > 0 && (
+      {(auswahl.kurzMonatlich.length > 0 || auswahl.kurzSaisonal.length > 0) && (
         <section className="mb-10">
           <Kapitelkopf
             nummer={2}
             titel="Wo der Klimawandel Ihre Saison trifft"
             unterzeile={r.pflichthinweise.exposition}
           />
-          {auswahl.kurzExpositionen.map((v) => (
+          {auswahl.kurzMonatlich.map((v) => (
             <HerleitungDrei key={`${v.indikator}-${v.szenario}-${v.zeitfenster}`} v={v} />
           ))}
-          {(auswahl.restExpositionen.length > 0 || auswahl.saisonal.length > 0) && (
+          {auswahl.kurzSaisonal.length > 0 && <SaisonExposition eintraege={auswahl.kurzSaisonal} />}
+          {(auswahl.restMonatlich.length > 0 || auswahl.restSaisonal.length > 0) && (
             <Aufklappbar
-              titel="Alle Expositionen im Detail"
+              titel="Alle Expositionen im Überblick"
               unterzeile="jede Kennzahl in beiden Szenarien und beiden Zeitfenstern"
-              anzahl={auswahl.restExpositionen.length + auswahl.saisonal.length}
+              anzahl={auswahl.restMonatlich.length + auswahl.restSaisonal.length}
             >
-              {auswahl.saisonal.length > 0 && <SaisonExposition eintraege={auswahl.saisonal} />}
-              <ExpositionsUebersicht eintraege={auswahl.restExpositionen} />
+              <ExpositionsUebersicht monatlich={auswahl.restMonatlich} saisonal={auswahl.restSaisonal} />
             </Aufklappbar>
           )}
         </section>

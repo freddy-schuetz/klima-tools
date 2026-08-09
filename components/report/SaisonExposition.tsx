@@ -16,6 +16,9 @@ export type SaisonExpositionT = {
   referenz: number;
   zukunft: number;
   delta: number;
+  // Relative Aenderung gegenueber der Referenz; im Kurzreport das Gewicht,
+  // mit dem entschieden wird, welche Befunde nach oben kommen.
+  delta_relativ?: number;
   richtung: "chance" | "risiko" | "neutral";
   richtung_label: string;
   anteil_uebernachtungen: number;
