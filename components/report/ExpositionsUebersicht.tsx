@@ -65,6 +65,7 @@ export default function ExpositionsUebersicht({
                 <th scope="col" className="py-1.5 pr-3 text-right font-semibold">heute</th>
                 <th scope="col" className="py-1.5 pr-3 text-right font-semibold">im Szenario</th>
                 <th scope="col" className="py-1.5 pr-3 text-right font-semibold">Anteil</th>
+                <th scope="col" className="py-1.5 pr-3 font-semibold">Richtung</th>
                 <th scope="col" className="py-1.5 font-semibold">Wirkmonate</th>
               </tr>
             </thead>
@@ -86,6 +87,11 @@ export default function ExpositionsUebersicht({
                   <td className="py-1.5 pr-3 text-right tabular-nums text-slate-600">
                     {Math.round(e.anteil_uebernachtungen * 100)} %
                   </td>
+                  {/* Die Richtung MUSS als Text dastehen: aus dem Vorzeichen
+                      allein folgt sie nicht (mehr Sommertage = Chance, mehr
+                      heiße Tage = Risiko), und im Graustufendruck oder bei
+                      Farbsehschwäche bliebe die Zeile sonst ohne Aussage. */}
+                  <td className="py-1.5 pr-3 text-slate-700">{e.richtung_label}</td>
                   <td className="py-1.5 text-slate-600">{e.wirkmonate.join(", ")}</td>
                 </tr>
               ))}

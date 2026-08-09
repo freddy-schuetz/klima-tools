@@ -47,8 +47,9 @@ export type VerschneidungT = Omit<MatrixT, "monate" | "summe"> & {
     monate_risiko: string[];
     exponierter_anteil_chance: number;
     exponierter_anteil_risiko: number;
-    exponierte_naechte_chance: number;
-    exponierte_naechte_risiko: number;
+    // Nur gesetzt, wenn belastbare Jahresuebernachtungen vorliegen.
+    exponierte_naechte_chance: number | null;
+    exponierte_naechte_risiko: number | null;
   };
 };
 
@@ -82,7 +83,13 @@ export default function HerleitungDrei({ v }: { v: VerschneidungT }) {
   const staerkste = [...betroffen].sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))[0];
 
   const anteilGesamt = v.summe.exponierter_anteil_chance + v.summe.exponierter_anteil_risiko;
-  const naechteGesamt = v.summe.exponierte_naechte_chance + v.summe.exponierte_naechte_risiko;
+  // Die Naechte-Zahlen fehlen, wenn keine belastbaren Jahresuebernachtungen
+  // vorliegen. Ohne diese Pruefung stand woertlich "NaN Naechte" in der
+  // Kernaussage — der Anteil ist auch ohne sie eine vollstaendige Aussage.
+  const naechteChance = v.summe.exponierte_naechte_chance;
+  const naechteRisiko = v.summe.exponierte_naechte_risiko;
+  const naechteGesamt =
+    naechteChance != null && naechteRisiko != null ? naechteChance + naechteRisiko : null;
 
   const nachkomma = Math.abs(maxDelta) < 5 ? 1 : 0;
   const dz = (n: number) =>
@@ -150,8 +157,9 @@ export default function HerleitungDrei({ v }: { v: VerschneidungT }) {
         titel="Die Überlagerung"
         satz={
           <>
-            Zusammengelegt liegen <strong>{prozent(anteilGesamt)}</strong> Ihrer Übernachtungen (
-            {naechte(naechteGesamt)} Nächte) in Monaten, die sich deutlich verändern
+            Zusammengelegt liegen <strong>{prozent(anteilGesamt)}</strong> Ihrer Übernachtungen
+            {naechteGesamt != null && <> ({naechte(naechteGesamt)} Nächte)</>} in Monaten, die sich
+            deutlich verändern
             {v.summe.exponierter_anteil_risiko > 0 && v.summe.exponierter_anteil_chance > 0 ? (
               <>
                 {" "}

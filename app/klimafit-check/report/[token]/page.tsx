@@ -148,8 +148,16 @@ export default function TiefenReportPage({ params }: { params: Promise<{ token: 
     // wichtigsten ueberhaupt — Schnee und Beschneiung liegen ausschliesslich als
     // Jahres- bzw. Saisonwert vor. Sie gehoeren deshalb in den Kurzreport und
     // nicht in den Anhang. Gewicht: betroffener Anteil mal relative Aenderung.
-    const gewicht = (e: SaisonExpositionT) =>
-      (e.anteil_uebernachtungen ?? 0) * Math.abs(e.delta_relativ ?? 0);
+    // `delta_relativ` ist null, wenn der Referenzwert 0 war — eine Division, die
+    // es nicht gibt. Das als Gewicht 0 zu lesen kehrt die Aussage um: gerade der
+    // Sprung von "gab es nicht" auf "gibt es" ist der drastischste Fall und
+    // waere garantiert als letzter einsortiert worden. Er zaehlt deshalb als
+    // volle Veraenderung.
+    const gewicht = (e: SaisonExpositionT) => {
+      const relativ =
+        e.delta_relativ ?? (e.referenz === 0 && e.delta !== 0 ? 1 : 0);
+      return (e.anteil_uebernachtungen ?? 0) * Math.abs(relativ);
+    };
     const staerksteSaisonal = new Map<string, SaisonExpositionT>();
     for (const e of saisonal) {
       if (e.richtung === "neutral") continue;

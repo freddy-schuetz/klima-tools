@@ -155,22 +155,6 @@ export default function Zeitstrahl({ strahl }: { strahl: ZeitstrahlT }) {
         aria-label={`${strahl.label}: gemessen ${zahl(referenzwert, nachkomma)} in ${strahl.referenzperiode}, heute ${zahl(heute, nachkomma)} ${strahl.einheit}. Projektion siehe Tabelle im Detailteil.`}
       >
         <defs>
-          {/* Eigenrechnung wird schraffiert gezeichnet: dieselbe Aussagekraft
-              vorzutäuschen wie bei einer veröffentlichten Projektion wäre der
-              bequemste Weg, den Report unglaubwürdig zu machen. */}
-          {["rcp45", "rcp85"].map((s) => (
-            <pattern
-              key={s}
-              id={`eigen-${strahl.indikator}-${s}`}
-              width="5"
-              height="5"
-              patternTransform="rotate(45)"
-              patternUnits="userSpaceOnUse"
-            >
-              <rect width="5" height="5" fill={SZENARIO_FARBE[s]} opacity="0.10" />
-              <line x1="0" y1="0" x2="0" y2="5" stroke={SZENARIO_FARBE[s]} strokeWidth="1.4" opacity="0.5" />
-            </pattern>
-          ))}
           <pattern id={`luecke-${strahl.indikator}`} width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
             <rect width="6" height="6" fill="#f8fafc" />
             <line x1="0" y1="0" x2="0" y2="6" stroke="#cbd5e1" strokeWidth="1.6" />
@@ -209,38 +193,65 @@ export default function Zeitstrahl({ strahl }: { strahl: ZeitstrahlT }) {
           </g>
         )}
 
-        {/* Projektionsfenster: je Fenster zwei Szenarien nebeneinander */}
-        {strahl.projektion.map((p, i) => {
-          const links = x(p.von);
-          const breite = x(p.bis) - x(p.von);
-          const halb = breite / 2;
-          const versatz = p.szenario === "rcp85" ? halb : 0;
-          const farbe = SZENARIO_FARBE[p.szenario] ?? "#64748b";
-          const oben = p.oben ?? p.mitte;
-          const unten = p.unten ?? p.mitte;
-          return (
-            <g key={`${p.szenario}-${p.von}-${i}`}>
-              <rect
-                x={links + versatz}
-                y={y(oben)}
-                width={Math.max(halb - 2, 3)}
-                height={Math.max(y(unten) - y(oben), 2)}
-                fill={p.eigenrechnung ? `url(#eigen-${strahl.indikator}-${p.szenario})` : farbe}
-                opacity={p.eigenrechnung ? 1 : 0.18}
-                rx="2"
-              />
-              <line
-                x1={links + versatz}
-                y1={y(p.mitte)}
-                x2={links + versatz + Math.max(halb - 2, 3)}
-                y2={y(p.mitte)}
-                stroke={farbe}
-                strokeWidth="2.5"
-                strokeDasharray={p.eigenrechnung ? "4 2" : undefined}
-              />
-            </g>
-          );
-        })}
+        {/* Veroeffentlichte Projektionen: Kasten ueber die volle Fensterbreite,
+            je Szenario eine Haelfte. */}
+        {strahl.projektion
+          .filter((p) => !p.eigenrechnung)
+          .map((p, i) => {
+            const links = x(p.von);
+            const halb = (x(p.bis) - x(p.von)) / 2;
+            const versatz = p.szenario === "rcp85" ? halb : 0;
+            const farbe = SZENARIO_FARBE[p.szenario] ?? "#64748b";
+            const oben = p.oben ?? p.mitte;
+            const unten = p.unten ?? p.mitte;
+            return (
+              <g key={`veroeff-${p.szenario}-${p.von}-${i}`}>
+                <rect
+                  x={links + versatz}
+                  y={y(oben)}
+                  width={Math.max(halb - 2, 3)}
+                  height={Math.max(y(unten) - y(oben), 2)}
+                  fill={farbe}
+                  opacity="0.18"
+                  rx="2"
+                />
+                <line
+                  x1={links + versatz}
+                  y1={y(p.mitte)}
+                  x2={links + versatz + Math.max(halb - 2, 3)}
+                  y2={y(p.mitte)}
+                  stroke={farbe}
+                  strokeWidth="2.5"
+                />
+              </g>
+            );
+          })}
+
+        {/* Eigenrechnung: Spannweitenbalken auf der Mitte ihres Zeitraums.
+            Als Kasten ueber die volle Fensterbreite gezeichnet lag sie
+            vollstaendig IM Kasten der veroeffentlichten Projektion — 2041-2060
+            steckt komplett in 2036-2065 — und verdeckte genau den Wert, neben
+            den sie gestellt werden soll. Ein schmaler Balken auf der
+            Zeitraummitte bleibt lesbar und behauptet nichts ueber die Breite. */}
+        {strahl.projektion
+          .filter((p) => p.eigenrechnung)
+          .map((p, i) => {
+            const mitte = x((p.von + p.bis) / 2);
+            const versatz = p.szenario === "rcp85" ? 5 : -5;
+            const cx = mitte + versatz;
+            const farbe = SZENARIO_FARBE[p.szenario] ?? "#64748b";
+            const oben = p.oben ?? p.mitte;
+            const unten = p.unten ?? p.mitte;
+            return (
+              <g key={`eigen-${p.szenario}-${p.von}-${i}`}>
+                <line x1={cx} y1={y(oben)} x2={cx} y2={y(unten)} stroke={farbe} strokeWidth="1.6"
+                      strokeDasharray="3 2" />
+                <line x1={cx - 3.5} y1={y(oben)} x2={cx + 3.5} y2={y(oben)} stroke={farbe} strokeWidth="1.6" />
+                <line x1={cx - 3.5} y1={y(unten)} x2={cx + 3.5} y2={y(unten)} stroke={farbe} strokeWidth="1.6" />
+                <circle cx={cx} cy={y(p.mitte)} r="3.2" fill="#ffffff" stroke={farbe} strokeWidth="2" />
+              </g>
+            );
+          })}
 
         {/* Einzeljahre — die Streuung gehört ins Bild, sonst wirkt der Trend glatter als die Wirklichkeit */}
         {jahre.map((jahr, i) => {
@@ -325,11 +336,13 @@ function Legende({ szenarien, mitEigenrechnung }: { szenarien: string[]; mitEige
       ))}
       {mitEigenrechnung && (
         <li className="flex items-center gap-1.5">
-          <svg width="18" height="10" aria-hidden>
-            <rect x="0" y="1" width="18" height="8" fill="#94a3b8" opacity="0.25" rx="2" />
-            <line x1="0" y1="5" x2="18" y2="5" stroke="#475569" strokeWidth="2.5" strokeDasharray="4 2" />
+          <svg width="14" height="14" aria-hidden>
+            <line x1="7" y1="1" x2="7" y2="13" stroke="#475569" strokeWidth="1.6" strokeDasharray="3 2" />
+            <line x1="3.5" y1="1" x2="10.5" y2="1" stroke="#475569" strokeWidth="1.6" />
+            <line x1="3.5" y1="13" x2="10.5" y2="13" stroke="#475569" strokeWidth="1.6" />
+            <circle cx="7" cy="7" r="3" fill="#ffffff" stroke="#475569" strokeWidth="2" />
           </svg>
-          schraffiert: eigene Auszählung aus Tagesdaten
+          Balken auf der Zeitraummitte: eigene Auszählung aus Tagesdaten
         </li>
       )}
     </ul>
