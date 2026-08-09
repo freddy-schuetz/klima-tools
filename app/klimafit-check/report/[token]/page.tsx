@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import Monatsmatrix, { type MatrixT } from "@/components/report/Monatsmatrix";
+import SaisonExposition, { type SaisonExpositionT } from "@/components/report/SaisonExposition";
 import { SzenarienPaar, type WertT } from "@/components/report/Kennzahl";
 import { Luecken, Quellenverzeichnis, Validierungstabelle, type QuelleT, type ValidierungT } from "@/components/report/Methodik";
 
@@ -23,7 +24,7 @@ type ReportJson = {
       hinweis: string;
     };
     zukunft: Record<string, { label: string; einheit: string; werte: WertT[] }>;
-    matrix: { verfuegbar: boolean; verschneidungen?: MatrixT[]; grund?: string };
+    matrix: { verfuegbar: boolean; verschneidungen?: (MatrixT | SaisonExpositionT)[]; grund?: string };
     segmente: { aktiv: string[]; typ?: string };
     massnahmen: unknown[];
     methodik: {
@@ -171,9 +172,17 @@ export default function TiefenReportPage({ params }: { params: Promise<{ token: 
             5 · Wo trifft der Klimawandel Ihre Saisonkurve?
           </h2>
           <p className="mb-4 text-sm text-slate-600">{r.pflichthinweise.exposition}</p>
-          {k.matrix.verschneidungen.map((m, i) => (
-            <Monatsmatrix key={i} matrix={m} />
-          ))}
+          {/* Zwei Formen: echte Monatsrechnung, sonst die saisonale Zuordnung. */}
+          <SaisonExposition
+            eintraege={k.matrix.verschneidungen.filter(
+              (m): m is SaisonExpositionT => (m as SaisonExpositionT).art === "saisonal",
+            )}
+          />
+          {k.matrix.verschneidungen
+            .filter((m): m is MatrixT => (m as SaisonExpositionT).art !== "saisonal")
+            .map((m, i) => (
+              <Monatsmatrix key={i} matrix={m} />
+            ))}
         </section>
       )}
 
