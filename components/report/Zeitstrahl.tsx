@@ -4,9 +4,13 @@
  *
  * Der Kern der Aussage ist die durchgezogene Messkurve — sie zeigt, dass die
  * Veränderung bereits stattgefunden hat. Die Modellbänder stehen daneben, nicht
- * darüber. Zwischen dem letzten Messjahr und dem ersten Projektionsfenster
- * bleibt eine Lücke sichtbar und beschriftet; sie zuzumalen wäre die bequemere,
- * aber unehrliche Lösung.
+ * darüber.
+ *
+ * Zwei Sorten Zukunft, die nicht verwechselt werden dürfen: die veröffentlichten
+ * Projektionen (voll eingefärbt) und unsere eigene Auszählung der Schwellentage
+ * aus Tagesdaten (schraffiert, gestrichelte Mittellinie). Letztere schließt das
+ * Jahrzehnt, für das niemand fertige Werte veröffentlicht. Bleibt trotzdem ein
+ * Bereich ohne beides, wird er als Lücke gezeichnet statt überbrückt.
  *
  * Handgeschriebenes SVG statt Diagrammbibliothek: hält den Druck sauber, die
  * Seite klein und die Beschriftung unter Kontrolle.
@@ -24,6 +28,9 @@ export type ProjektionsfensterT = {
   ensemble_n?: number | null;
   bandbreite_art?: string;
   auf_messniveau_gesetzt?: boolean;
+  /** Eigene Auszählung aus Tagesdaten statt veröffentlichter Projektion. */
+  eigenrechnung?: boolean;
+  bezugsperiode?: string | null;
 };
 
 export type ZeitstrahlT = {
@@ -106,8 +113,11 @@ export default function Zeitstrahl({ strahl }: { strahl: ZeitstrahlT }) {
 
   // Für die Kopfzeile das aussagekräftigste Fenster: der Hochemissionspfad im
   // näheren Zeitraum — er liegt im Planungshorizont heutiger Entscheidungen.
+  // Für die Kopfzeile die veröffentlichte Projektion bevorzugen: die
+  // Eigenrechnung des Nahfensters ist als Brücke gedacht, nicht als Kernaussage.
   const leitfenster =
-    strahl.projektion.find((p) => p.szenario === "rcp85" && p.von <= 2065) ??
+    strahl.projektion.find((p) => p.szenario === "rcp85" && !p.eigenrechnung && p.von <= 2065) ??
+    strahl.projektion.find((p) => p.szenario === "rcp85" && !p.eigenrechnung) ??
     strahl.projektion.find((p) => p.szenario === "rcp85") ??
     strahl.projektion[0];
 
@@ -145,6 +155,22 @@ export default function Zeitstrahl({ strahl }: { strahl: ZeitstrahlT }) {
         aria-label={`${strahl.label}: gemessen ${zahl(referenzwert, nachkomma)} in ${strahl.referenzperiode}, heute ${zahl(heute, nachkomma)} ${strahl.einheit}. Projektion siehe Tabelle im Detailteil.`}
       >
         <defs>
+          {/* Eigenrechnung wird schraffiert gezeichnet: dieselbe Aussagekraft
+              vorzutäuschen wie bei einer veröffentlichten Projektion wäre der
+              bequemste Weg, den Report unglaubwürdig zu machen. */}
+          {["rcp45", "rcp85"].map((s) => (
+            <pattern
+              key={s}
+              id={`eigen-${strahl.indikator}-${s}`}
+              width="5"
+              height="5"
+              patternTransform="rotate(45)"
+              patternUnits="userSpaceOnUse"
+            >
+              <rect width="5" height="5" fill={SZENARIO_FARBE[s]} opacity="0.10" />
+              <line x1="0" y1="0" x2="0" y2="5" stroke={SZENARIO_FARBE[s]} strokeWidth="1.4" opacity="0.5" />
+            </pattern>
+          ))}
           <pattern id={`luecke-${strahl.indikator}`} width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
             <rect width="6" height="6" fill="#f8fafc" />
             <line x1="0" y1="0" x2="0" y2="6" stroke="#cbd5e1" strokeWidth="1.6" />
@@ -199,8 +225,8 @@ export default function Zeitstrahl({ strahl }: { strahl: ZeitstrahlT }) {
                 y={y(oben)}
                 width={Math.max(halb - 2, 3)}
                 height={Math.max(y(unten) - y(oben), 2)}
-                fill={farbe}
-                opacity="0.18"
+                fill={p.eigenrechnung ? `url(#eigen-${strahl.indikator}-${p.szenario})` : farbe}
+                opacity={p.eigenrechnung ? 1 : 0.18}
                 rx="2"
               />
               <line
@@ -210,6 +236,7 @@ export default function Zeitstrahl({ strahl }: { strahl: ZeitstrahlT }) {
                 y2={y(p.mitte)}
                 stroke={farbe}
                 strokeWidth="2.5"
+                strokeDasharray={p.eigenrechnung ? "4 2" : undefined}
               />
             </g>
           );
@@ -246,7 +273,12 @@ export default function Zeitstrahl({ strahl }: { strahl: ZeitstrahlT }) {
         ))}
       </svg>
 
-      <Legende szenarien={[...new Set(strahl.projektion.map((p) => p.szenario))]} />
+      <Legende
+        szenarien={[...new Set(strahl.projektion.map((p) => p.szenario))]}
+        mitEigenrechnung={strahl.projektion.some((p) => p.eigenrechnung)}
+      />
+
+      <p className="mt-2 text-[11px] leading-relaxed text-slate-500">{strahl.hinweis_projektion}</p>
 
       {strahl.einordnung_messung && (
         <p className="mt-3 rounded-xl bg-slate-50 p-3 text-sm leading-relaxed text-slate-700 ring-1 ring-slate-200">
@@ -267,7 +299,7 @@ function Etappe({ titel, wert, betont = false }: { titel: string; wert: string; 
   );
 }
 
-function Legende({ szenarien }: { szenarien: string[] }) {
+function Legende({ szenarien, mitEigenrechnung }: { szenarien: string[]; mitEigenrechnung: boolean }) {
   return (
     <ul className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-600">
       <li className="flex items-center gap-1.5">
@@ -291,6 +323,15 @@ function Legende({ szenarien }: { szenarien: string[] }) {
           {SZENARIO_NAME[s] ?? s}
         </li>
       ))}
+      {mitEigenrechnung && (
+        <li className="flex items-center gap-1.5">
+          <svg width="18" height="10" aria-hidden>
+            <rect x="0" y="1" width="18" height="8" fill="#94a3b8" opacity="0.25" rx="2" />
+            <line x1="0" y1="5" x2="18" y2="5" stroke="#475569" strokeWidth="2.5" strokeDasharray="4 2" />
+          </svg>
+          schraffiert: eigene Auszählung aus Tagesdaten
+        </li>
+      )}
     </ul>
   );
 }
