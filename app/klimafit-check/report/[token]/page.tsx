@@ -1,46 +1,87 @@
+/**
+ * Tiefen-Report — zweistufig.
+ *
+ * Oben ein Kurzreport, der ohne Klick auskommt und die drei Fragen beantwortet,
+ * die eine Geschäftsführung stellt: Was passiert bereits? Wo trifft es uns? Was
+ * tun wir? Darunter dieselben Aussagen mit allen Belegen, Tabellen und der
+ * Methodik — aufgeklappt nur, wer sie sehen will, und im Druck automatisch.
+ *
+ * Die Auswahl für den Kurzteil ist bewusst datengetrieben und nicht
+ * redaktionell: die Kennzahlen mit der stärksten bereits gemessenen Veränderung,
+ * die Expositionen mit dem größten betroffenen Übernachtungsanteil. So bleibt
+ * die Reihenfolge über alle Destinationen begründbar.
+ */
 "use client";
 
-import { use, useEffect, useState } from "react";
-import Monatsmatrix, { type MatrixT } from "@/components/report/Monatsmatrix";
+import { use, useEffect, useMemo, useState } from "react";
+import Monatsmatrix from "@/components/report/Monatsmatrix";
 import SaisonExposition, { type SaisonExpositionT } from "@/components/report/SaisonExposition";
 import Analogon, { type AnalogonT } from "@/components/report/Analogon";
 import { SzenarienPaar, type WertT } from "@/components/report/Kennzahl";
-import { Luecken, Quellenverzeichnis, Validierungstabelle, type QuelleT, type ValidierungT } from "@/components/report/Methodik";
+import {
+  Luecken,
+  Quellenverzeichnis,
+  Validierungstabelle,
+  type QuelleT,
+  type ValidierungT,
+} from "@/components/report/Methodik";
+import Zeitstrahl, { type ZeitstrahlT } from "@/components/report/Zeitstrahl";
+import HerleitungDrei, { type VerschneidungT } from "@/components/report/HerleitungDrei";
+import Aufklappbar from "@/components/report/Aufklappbar";
+import { Fahrplan, MassnahmeKarte, type MassnahmenkapitelT } from "@/components/report/Massnahmen";
 
 type Saisonmonat = { monat: number; name: string; anteil: number; anteil_min: number; anteil_max: number };
+type Saisonprofil = {
+  verfuegbar: boolean;
+  grund?: string;
+  monate?: Saisonmonat[];
+  gini?: number;
+  spitzenmonat?: { name: string; anteil: number };
+  methodik?: string;
+};
 
 type ReportJson = {
   erstellt: string;
   destination: {
-    name: string; bundesland: string; kreis?: string; nuts3?: string;
-    typ?: string; hoehe_m?: number;
+    name: string;
+    bundesland: string;
+    kreis?: string;
+    nuts3?: string;
+    typ?: string;
+    hoehe_m?: number;
   };
   profil: Record<string, unknown>;
   kapitel: {
     zusammenfassung: { text: string; richtung: "chance" | "risiko" | "neutral" }[];
+    zeitstrahlen?: ZeitstrahlT[];
     heute: {
-      saisonprofil: { verfuegbar: boolean; grund?: string; monate?: Saisonmonat[]; gini?: number;
-                      spitzenmonat?: { name: string; anteil: number }; methodik?: string };
+      saisonprofil: Saisonprofil;
       jahresreihe: { jahr: number; uebernachtungen: number | null }[];
       hinweis: string;
     };
     zukunft: Record<string, { label: string; einheit: string; werte: WertT[] }>;
-    matrix: { verfuegbar: boolean; verschneidungen?: (MatrixT | SaisonExpositionT)[]; grund?: string };
+    matrix: { verfuegbar: boolean; verschneidungen?: (VerschneidungT | SaisonExpositionT)[]; grund?: string };
     segmente: { aktiv: string[]; typ?: string; titel?: string; leitfrage?: string; text?: string };
     analogon: AnalogonT;
+    benchmark?: { verfuegbar: boolean; hinweis?: string };
     naechste_schritte: { titel?: string; text?: string; schritte?: string[]; anschluss?: string };
-    massnahmen: unknown[];
+    massnahmen: MassnahmenkapitelT;
     methodik: {
       quellen: QuelleT[];
       validierung: ValidierungT[];
       limitationen: string[];
       luecken: string[];
+      konventionen?: string[];
     };
   };
   pflichthinweise: Record<string, string>;
 };
 
 type Antwort = { status: string; ergebnis?: ReportJson; fehler?: string; error?: string };
+
+/** Wie viele Elemente der Kurzreport zeigt, bevor der Rest in den Detailteil wandert. */
+const KURZ_ZEITSTRAHLEN = 3;
+const KURZ_EXPOSITIONEN = 4;
 
 export default function TiefenReportPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
@@ -55,7 +96,10 @@ export default function TiefenReportPage({ params }: { params: Promise<{ token: 
         const res = await fetch(`/api/klimafit/report/${token}`, { cache: "no-store" });
         const data: Antwort = await res.json();
         if (!aktiv) return;
-        if (!res.ok) { setFehler(data.error ?? "nicht erreichbar"); return; }
+        if (!res.ok) {
+          setFehler(data.error ?? "nicht erreichbar");
+          return;
+        }
         setAntwort(data);
         if (data.status === "wartet" || data.status === "laeuft") setTimeout(holen, 4000);
       } catch {
@@ -63,8 +107,51 @@ export default function TiefenReportPage({ params }: { params: Promise<{ token: 
       }
     };
     holen();
-    return () => { aktiv = false; };
+    return () => {
+      aktiv = false;
+    };
   }, [token]);
+
+  const r = antwort?.ergebnis;
+
+  // Auswahl für den Kurzteil — memoisiert, damit das Nachladen sie nicht jedes Mal neu sortiert.
+  const auswahl = useMemo(() => {
+    if (!r) return null;
+    const strahlen = r.kapitel.zeitstrahlen ?? [];
+    const monatlich = (r.kapitel.matrix.verschneidungen ?? []).filter(
+      (m): m is VerschneidungT => (m as SaisonExpositionT).art !== "saisonal",
+    );
+    const saisonal = (r.kapitel.matrix.verschneidungen ?? []).filter(
+      (m): m is SaisonExpositionT => (m as SaisonExpositionT).art === "saisonal",
+    );
+
+    // Je Kennzahl nur die stärkste Verschneidung in den Kurzteil; sonst steht
+    // dieselbe Aussage viermal da (zwei Szenarien x zwei Zeitfenster).
+    const staerkste = new Map<string, VerschneidungT>();
+    for (const v of monatlich) {
+      const gewicht = (e: VerschneidungT) =>
+        (e.summe?.exponierter_anteil_chance ?? 0) + (e.summe?.exponierter_anteil_risiko ?? 0);
+      const bisher = staerkste.get(v.indikator);
+      if (!bisher || gewicht(v) > gewicht(bisher)) staerkste.set(v.indikator, v);
+    }
+    const kurzExpositionen = [...staerkste.values()]
+      .sort(
+        (a, b) =>
+          (b.summe.exponierter_anteil_chance + b.summe.exponierter_anteil_risiko) -
+          (a.summe.exponierter_anteil_chance + a.summe.exponierter_anteil_risiko),
+      )
+      .slice(0, KURZ_EXPOSITIONEN);
+
+    return {
+      strahlen,
+      kurzStrahlen: strahlen.slice(0, KURZ_ZEITSTRAHLEN),
+      restStrahlen: strahlen.slice(KURZ_ZEITSTRAHLEN),
+      monatlich,
+      saisonal,
+      kurzExpositionen,
+      restExpositionen: monatlich.filter((v) => !kurzExpositionen.includes(v)),
+    };
+  }, [r]);
 
   if (fehler) {
     return (
@@ -87,7 +174,7 @@ export default function TiefenReportPage({ params }: { params: Promise<{ token: 
     );
   }
 
-  if (antwort.status === "fehler" || !antwort.ergebnis) {
+  if (antwort.status === "fehler" || !r || !auswahl) {
     return (
       <main className="mx-auto max-w-3xl px-4 py-16">
         <div className="rounded-xl bg-red-50 p-4 text-sm text-red-800 ring-1 ring-red-200">
@@ -97,12 +184,18 @@ export default function TiefenReportPage({ params }: { params: Promise<{ token: 
     );
   }
 
-  const r = antwort.ergebnis;
   const k = r.kapitel;
   const d = r.destination;
+  const massnahmen = k.massnahmen?.massnahmen ?? [];
+
+  // Für die Befundzeile der Maßnahmenkarten: Indikatorschlüssel zu Klartext.
+  const labelJeIndikator = new Map<string, string>();
+  for (const s of auswahl.strahlen) labelJeIndikator.set(s.indikator, s.label);
+  for (const v of auswahl.monatlich) labelJeIndikator.set(v.indikator, v.indikator_label);
+  for (const v of auswahl.saisonal) labelJeIndikator.set(v.indikator, v.indikator_label);
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-10 print:max-w-none print:px-0">
+    <main className="mx-auto max-w-4xl px-4 py-10 print:max-w-none print:px-0 print:py-0">
       <header className="mb-8 border-b border-slate-200 pb-6">
         <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-accent">
           Destinations-Klimacheck · Tiefen-Report
@@ -115,92 +208,87 @@ export default function TiefenReportPage({ params }: { params: Promise<{ token: 
           {d.typ && ` · ${d.typ}`}
         </p>
         <p className="mt-2 text-xs text-slate-500">
-          Erstellt am {new Date(r.erstellt).toLocaleDateString("de-DE")} ·{" "}
-          {r.pflichthinweise.positionierung}
+          Erstellt am {new Date(r.erstellt).toLocaleDateString("de-DE")} · {r.pflichthinweise.positionierung}
         </p>
       </header>
 
       <Luecken luecken={k.methodik.luecken} />
 
-      {/* 1 — Klimaprofil auf einen Blick */}
-      {k.zusammenfassung.length > 0 && (
-        <section className="mb-10">
-          <h2 className="mb-3 text-xl font-bold text-brand">1 · Klimaprofil auf einen Blick</h2>
-          <ul className="space-y-2">
-            {k.zusammenfassung.map((b, i) => (
-              <li key={i} className="flex gap-3 rounded-xl bg-white p-3 shadow-sm ring-1 ring-slate-200">
-                <span
-                  className={`mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full ${
-                    b.richtung === "chance" ? "bg-sky-600" : b.richtung === "risiko" ? "bg-orange-500" : "bg-slate-400"
-                  }`}
-                />
-                <span className="text-sm text-slate-800">{b.text}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      {/* ══════════════════════ KURZREPORT ══════════════════════ */}
 
-      {/* 2 — Ihre Destination heute (nur Beobachtung) */}
-      <section className="mb-10">
-        <h2 className="mb-1 text-xl font-bold text-brand">2 · Ihre Destination heute</h2>
-        <p className="mb-3 text-sm text-slate-600">
-          Nur gemessene Werte — bevor irgendein Modell zu Wort kommt.
-        </p>
-        {k.heute.saisonprofil.verfuegbar ? (
-          <Saisonkurve profil={k.heute.saisonprofil} />
-        ) : (
-          <p className="rounded-xl bg-slate-50 p-3 text-sm text-slate-600 ring-1 ring-slate-200">
-            Saisonkurve noch nicht verfügbar: {k.heute.saisonprofil.grund}
-          </p>
-        )}
-        <p className="mt-3 text-xs text-slate-500">{k.heute.hinweis}</p>
-      </section>
-
-      {/* 3 — Klimazukunft in zwei Szenarien */}
-      {Object.keys(k.zukunft).length > 0 && (
+      {/* 1 — Was bereits passiert ist */}
+      {auswahl.kurzStrahlen.length > 0 && (
         <section className="mb-10">
-          <h2 className="mb-1 text-xl font-bold text-brand">3 · Klimazukunft in zwei Szenarien</h2>
-          <p className="mb-4 text-sm text-slate-600">{r.pflichthinweise.szenarien}</p>
-          {Object.entries(k.zukunft).map(([key, gruppe]) => (
-            <SzenarienPaar key={key} titel={gruppe.label} werte={gruppe.werte} />
-          ))}
-        </section>
-      )}
-
-      {/* 5 — Chancen-/Risiko-Matrix */}
-      {k.matrix.verfuegbar && k.matrix.verschneidungen && (
-        <section className="mb-10">
-          <h2 className="mb-1 text-xl font-bold text-brand">
-            5 · Wo trifft der Klimawandel Ihre Saisonkurve?
-          </h2>
-          <p className="mb-4 text-sm text-slate-600">{r.pflichthinweise.exposition}</p>
-          {/* Zwei Formen: echte Monatsrechnung, sonst die saisonale Zuordnung. */}
-          <SaisonExposition
-            eintraege={k.matrix.verschneidungen.filter(
-              (m): m is SaisonExpositionT => (m as SaisonExpositionT).art === "saisonal",
-            )}
+          <Kapitelkopf
+            nummer={1}
+            titel="Das ist bereits passiert"
+            unterzeile="Gemessene Werte des Deutschen Wetterdienstes für Ihren Landkreis — 1951 bis heute, danach die Modellbandbreite."
           />
-          {k.matrix.verschneidungen
-            .filter((m): m is MatrixT => (m as SaisonExpositionT).art !== "saisonal")
-            .map((m, i) => (
-              <Monatsmatrix key={i} matrix={m} />
-            ))}
+          {auswahl.kurzStrahlen.map((s) => (
+            <Zeitstrahl key={s.indikator} strahl={s} />
+          ))}
+          {auswahl.restStrahlen.length > 0 && (
+            <Aufklappbar
+              titel="Weitere Kennzahlen im Zeitverlauf"
+              unterzeile="dieselbe Darstellung für die übrigen Indikatoren"
+              anzahl={auswahl.restStrahlen.length}
+            >
+              {auswahl.restStrahlen.map((s) => (
+                <Zeitstrahl key={s.indikator} strahl={s} />
+              ))}
+            </Aufklappbar>
+          )}
         </section>
       )}
 
-      {/* 7 — Klima-Analogon */}
-      {k.analogon?.verfuegbar && (
+      {/* 2 — Wo es die Saison trifft */}
+      {auswahl.kurzExpositionen.length > 0 && (
         <section className="mb-10">
-          <h2 className="mb-1 text-xl font-bold text-brand">7 · Wo liegt Ihr Klima-Zwilling?</h2>
-          <Analogon analogon={k.analogon} />
+          <Kapitelkopf
+            nummer={2}
+            titel="Wo der Klimawandel Ihre Saison trifft"
+            unterzeile={r.pflichthinweise.exposition}
+          />
+          {auswahl.kurzExpositionen.map((v) => (
+            <HerleitungDrei key={`${v.indikator}-${v.szenario}-${v.zeitfenster}`} v={v} />
+          ))}
+          {(auswahl.restExpositionen.length > 0 || auswahl.saisonal.length > 0) && (
+            <Aufklappbar
+              titel="Alle Expositionen im Detail"
+              unterzeile="jede Kennzahl in beiden Szenarien und beiden Zeitfenstern, als Monatstabelle"
+              anzahl={auswahl.restExpositionen.length + auswahl.saisonal.length}
+            >
+              {auswahl.saisonal.length > 0 && <SaisonExposition eintraege={auswahl.saisonal} />}
+              {auswahl.restExpositionen.map((v, i) => (
+                <Monatsmatrix key={i} matrix={v} />
+              ))}
+            </Aufklappbar>
+          )}
         </section>
       )}
 
-      {/* 9 — Nächste Schritte */}
+      {/* 3 — Was zu tun ist */}
+      {k.massnahmen?.verfuegbar && massnahmen.length > 0 && (
+        <section className="mb-10">
+          <Kapitelkopf
+            nummer={3}
+            titel="Was Sie damit machen können"
+            unterzeile="Ausgewählt zu den auffälligen Kennzahlen Ihrer Destination, sortiert nach dem, was Sie selbst anstoßen können."
+          />
+          <Fahrplan massnahmen={massnahmen} />
+          {massnahmen.map((m) => (
+            <MassnahmeKarte key={m.id} m={m} indikatorLabel={(s) => (s ? labelJeIndikator.get(s) ?? null : null)} />
+          ))}
+          {k.massnahmen.hinweis && (
+            <p className="mt-2 text-[11px] leading-relaxed text-slate-500">{k.massnahmen.hinweis}</p>
+          )}
+        </section>
+      )}
+
+      {/* 4 — Gremienvorlage */}
       {k.naechste_schritte?.titel && (
-        <section className="mb-10 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-          <h2 className="mb-2 text-xl font-bold text-brand">9 · {k.naechste_schritte.titel}</h2>
+        <section className="mb-10 break-inside-avoid rounded-2xl bg-brand/5 p-5 ring-1 ring-brand/15">
+          <h2 className="mb-2 text-xl font-bold text-brand">{k.naechste_schritte.titel}</h2>
           <p className="mb-3 text-sm leading-relaxed text-slate-700">{k.naechste_schritte.text}</p>
           <ol className="mb-3 list-decimal space-y-1.5 pl-5 text-sm text-slate-700">
             {(k.naechste_schritte.schritte ?? []).map((s, i) => (
@@ -211,38 +299,141 @@ export default function TiefenReportPage({ params }: { params: Promise<{ token: 
         </section>
       )}
 
-      {/* 10 — Methodik */}
+      {/* ══════════════════════ BELEGE ══════════════════════ */}
+
+      <section className="mb-10">
+        <h2 className="mb-1 text-xl font-bold text-brand">Belege und Einzelwerte</h2>
+        <p className="mb-4 text-sm text-slate-600">
+          Alles, was den Aussagen oben zugrunde liegt. Im Ausdruck sind diese Bereiche automatisch geöffnet.
+        </p>
+
+        {k.zusammenfassung.length > 0 && (
+          <Aufklappbar titel="Kernaussagen in einer Liste" anzahl={k.zusammenfassung.length}>
+            <ul className="space-y-2">
+              {k.zusammenfassung.map((b, i) => (
+                <li key={i} className="flex gap-3">
+                  <span
+                    className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${
+                      b.richtung === "chance" ? "bg-sky-600" : b.richtung === "risiko" ? "bg-orange-500" : "bg-slate-400"
+                    }`}
+                  />
+                  <span className="text-sm text-slate-800">{b.text}</span>
+                </li>
+              ))}
+            </ul>
+          </Aufklappbar>
+        )}
+
+        <Aufklappbar
+          titel="Ihre Saisonkurve"
+          unterzeile="amtliche Beherbergungsstatistik, Median über die verfügbaren Jahrgänge"
+        >
+          {k.heute.saisonprofil.verfuegbar ? (
+            <Saisonkurve profil={k.heute.saisonprofil} />
+          ) : (
+            <p className="text-sm text-slate-600">
+              Saisonkurve noch nicht verfügbar: {k.heute.saisonprofil.grund}
+            </p>
+          )}
+          <p className="mt-3 text-xs text-slate-500">{k.heute.hinweis}</p>
+        </Aufklappbar>
+
+        {Object.keys(k.zukunft).length > 0 && (
+          <Aufklappbar
+            titel="Alle Kennzahlen mit Bandbreite je Szenario"
+            unterzeile={r.pflichthinweise.szenarien}
+            anzahl={Object.keys(k.zukunft).length}
+          >
+            {Object.entries(k.zukunft).map(([key, gruppe]) => (
+              <SzenarienPaar key={key} titel={gruppe.label} werte={gruppe.werte} />
+            ))}
+          </Aufklappbar>
+        )}
+
+        {k.segmente?.titel && (
+          <Aufklappbar titel={`Einordnung für Ihren Destinationstyp: ${k.segmente.titel}`}>
+            {k.segmente.leitfrage && (
+              <p className="mb-2 text-sm font-medium text-brand">{k.segmente.leitfrage}</p>
+            )}
+            <p className="text-sm leading-relaxed text-slate-700">{k.segmente.text}</p>
+          </Aufklappbar>
+        )}
+
+        {k.analogon?.verfuegbar && (
+          <Aufklappbar
+            titel="Ihr Klima-Zwilling"
+            unterzeile="der Ort, dessen heutiges Klima dem projizierten Klima am nächsten kommt"
+          >
+            <Analogon analogon={k.analogon} />
+          </Aufklappbar>
+        )}
+
+        {k.benchmark && !k.benchmark.verfuegbar && k.benchmark.hinweis && (
+          <p className="mb-3 rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-600 ring-1 ring-slate-200">
+            <strong>Vergleich mit anderen Destinationen: </strong>
+            {k.benchmark.hinweis}
+          </p>
+        )}
+      </section>
+
+      {/* ══════════════════════ METHODIK ══════════════════════ */}
+
       <section className="mb-10 border-t border-slate-200 pt-6">
-        <h2 className="mb-3 text-xl font-bold text-brand">So haben wir gerechnet</h2>
+        <h2 className="mb-1 text-xl font-bold text-brand">So haben wir gerechnet</h2>
+        <p className="mb-4 text-sm text-slate-600">
+          Jeder Wert im Report hat eine benannte Quelle, ein benanntes Szenario und eine benannte
+          Lesart seiner Bandbreite. Was fehlt, steht als Lücke drin — nicht als Schätzung.
+        </p>
 
-        <h3 className="mb-2 mt-4 text-sm font-semibold uppercase tracking-wide text-slate-500">
-          Validierung
-        </h3>
-        <Validierungstabelle zeilen={k.methodik.validierung} />
+        <Aufklappbar titel="Validierung gegen amtliche Vergleichswerte" anzahl={k.methodik.validierung.length}>
+          <Validierungstabelle zeilen={k.methodik.validierung} />
+        </Aufklappbar>
 
-        <h3 className="mb-2 mt-6 text-sm font-semibold uppercase tracking-wide text-slate-500">
-          Quellen
-        </h3>
-        <Quellenverzeichnis quellen={k.methodik.quellen} />
+        <Aufklappbar titel="Quellenverzeichnis" anzahl={k.methodik.quellen.length}>
+          <Quellenverzeichnis quellen={k.methodik.quellen} />
+        </Aufklappbar>
 
-        <h3 className="mb-2 mt-6 text-sm font-semibold uppercase tracking-wide text-slate-500">
-          Grenzen der Aussage
-        </h3>
-        <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
-          {k.methodik.limitationen.map((l, i) => (
-            <li key={i}>{l}</li>
-          ))}
-        </ul>
+        <Aufklappbar titel="Grenzen der Aussage" anzahl={k.methodik.limitationen.length} offen>
+          <ul className="list-disc space-y-1.5 pl-5 text-sm text-slate-700">
+            {k.methodik.limitationen.map((l, i) => (
+              <li key={i}>{l}</li>
+            ))}
+          </ul>
+          {(k.methodik.konventionen ?? []).length > 0 && (
+            <>
+              <h4 className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Konventionen
+              </h4>
+              <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
+                {(k.methodik.konventionen ?? []).map((s, i) => (
+                  <li key={i}>{s}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </Aufklappbar>
       </section>
     </main>
   );
 }
 
-function Saisonkurve({ profil }: { profil: NonNullable<ReportJson["kapitel"]["heute"]["saisonprofil"]> }) {
+function Kapitelkopf({ nummer, titel, unterzeile }: { nummer: number; titel: string; unterzeile?: string }) {
+  return (
+    <div className="mb-4">
+      <h2 className="flex items-baseline gap-2 text-xl font-bold text-brand">
+        <span className="text-brand-accent">{nummer}</span>
+        {titel}
+      </h2>
+      {unterzeile && <p className="mt-1 text-sm leading-relaxed text-slate-600">{unterzeile}</p>}
+    </div>
+  );
+}
+
+function Saisonkurve({ profil }: { profil: Saisonprofil }) {
   const monate = profil.monate ?? [];
   const max = Math.max(...monate.map((m) => m.anteil_max), 0.01);
   return (
-    <figure className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+    <figure className="break-inside-avoid">
       <div className="flex items-end gap-1" role="img" aria-label="Saisonkurve der Übernachtungen">
         {monate.map((m) => (
           <div key={m.monat} className="flex flex-1 flex-col items-center gap-1">
@@ -265,8 +456,8 @@ function Saisonkurve({ profil }: { profil: NonNullable<ReportJson["kapitel"]["he
       <figcaption className="mt-3 space-y-1 text-xs text-slate-600">
         <p>
           Spitzenmonat: <strong>{profil.spitzenmonat?.name}</strong> mit{" "}
-          {((profil.spitzenmonat?.anteil ?? 0) * 100).toFixed(1)} % der Jahresübernachtungen ·
-          Saisonalität (Gini): {profil.gini}
+          {((profil.spitzenmonat?.anteil ?? 0) * 100).toFixed(1)} % der Jahresübernachtungen · Saisonalität
+          (Gini): {profil.gini}
         </p>
         <p className="text-slate-500">
           Grüner Balken = Median, graue Fläche = Spannweite der Einzeljahre. {profil.methodik}

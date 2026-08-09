@@ -7,3 +7,66 @@
   --color-warn: #d97706;
   --color-bad: #dc2626;
 }
+
+/* --------------------------------------------------------------- Druck / PDF
+   Der Tiefen-Report wird ausgedruckt und als PDF verschickt. Drei Dinge muessen
+   dafuer stimmen, und keines davon macht der Browser von selbst:
+
+   * Farbflaechen: ohne print-color-adjust druckt Chrome Hintergruende weiss und
+     die Chancen-/Risiko-Einfaerbung verschwindet — genau die Information, die
+     die Grafik traegt.
+   * Umbrueche: Grafik und zugehoerige Bildunterschrift duerfen nicht getrennt
+     werden, sonst steht die Erklaerung auf der naechsten Seite.
+   * Aufgeklappte Details: `Aufklappbar` setzt `open` vor dem Druck per Ereignis;
+     die Regel hier ist der Rueckfall, falls das Ereignis ausbleibt (Playwright
+     im Kopflos-Betrieb loest `beforeprint` nicht immer aus).
+*/
+@media print {
+  :root {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  @page {
+    size: A4;
+    margin: 16mm 14mm 18mm 14mm;
+  }
+
+  body {
+    background: #ffffff;
+    font-size: 10.5pt;
+  }
+
+  details > div {
+    display: block !important;
+  }
+
+  details > summary {
+    display: none !important;
+  }
+
+  figure,
+  article,
+  section > div,
+  table {
+    break-inside: avoid;
+  }
+
+  h2 {
+    break-after: avoid;
+  }
+
+  /* Bildschirm-Bedienelemente gehoeren nicht ins PDF. */
+  nav,
+  footer,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 8pt;
+    color: #64748b;
+    word-break: break-all;
+  }
+}
