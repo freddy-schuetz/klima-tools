@@ -44,6 +44,8 @@ type Saisonprofil = {
 
 type ReportJson = {
   erstellt: string;
+  /** Amtlicher Gemeindeschlüssel — zwei Stellen bedeuten: ein ganzes Bundesland. */
+  ags: string;
   destination: {
     name: string;
     bundesland: string;
@@ -259,10 +261,15 @@ export default function TiefenReportPage({ params }: { params: Promise<{ token: 
       {/* 1 — Was bereits passiert ist */}
       {auswahl.kurzStrahlen.length > 0 && (
         <section className="mb-10">
+          {/* Ein Bundesland hat keinen Landkreis. Der Zeitstrahl selbst sagt
+              unter der Grafik schon das Richtige („Flächenmittel des Landes");
+              diese Zeile war der letzte Ort mit fester Annahme. */}
           <Kapitelkopf
             nummer={1}
             titel="Das ist bereits passiert"
-            unterzeile="Gemessene Werte des Deutschen Wetterdienstes für Ihren Landkreis — 1951 bis heute, danach die Modellbandbreite."
+            unterzeile={`Gemessene Werte des Deutschen Wetterdienstes für ${
+              r.ags.length <= 2 ? "Ihr Bundesland" : "Ihren Landkreis"
+            } — 1951 bis heute, danach die Modellbandbreite.`}
           />
           {auswahl.kurzStrahlen.map((s) => (
             <Zeitstrahl key={s.indikator} strahl={s} />
