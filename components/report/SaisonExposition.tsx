@@ -72,9 +72,14 @@ export default function SaisonExposition({ eintraege }: { eintraege: SaisonExpos
         const f = FARBE[e.richtung] ?? FARBE.neutral;
         // Der Bezugsrahmen („im Jahr", „je Winter") steht einmal am Anfang; die
         // folgenden Zahlen im selben Satz beziehen sich erkennbar darauf.
-        const einheit = einheitImSatz(e.einheit);
-        const einheitKurz = einheitImSatz(e.einheit, "nominativ", "kurz");
-        const einheitDativ = einheitImSatz(e.einheit, "dativ", "kurz");
+        // Die Einzahl richtet sich nach der ANGEZEIGTEN Zahl, nicht nach dem
+        // Rohwert: 1,04 wird als „1" gedruckt und verlangt dann „1 Tag".
+        const heute = zahl(e.referenz);
+        const kuenftig = zahl(e.zukunft);
+        const abstand = zahl(Math.abs(e.delta));
+        const einheit = einheitImSatz(e.einheit, "nominativ", "lang", heute === "1");
+        const einheitKurz = einheitImSatz(e.einheit, "nominativ", "kurz", kuenftig === "1");
+        const einheitDativ = einheitImSatz(e.einheit, "dativ", "kurz", abstand === "1");
         const wirdMehr = e.delta > 0;
         const verschwindet = Math.abs(e.zukunft) < 0.05;
         const anteil = Math.round(e.anteil_uebernachtungen * 100);
@@ -96,9 +101,9 @@ export default function SaisonExposition({ eintraege }: { eintraege: SaisonExpos
 
             {/* Der Befund als Satz — die Zahlen stehen darin, nicht daneben. */}
             <p className="text-sm leading-relaxed text-slate-800">
-              Heute sind es{" "}
+              Heute {heute === "1" ? "ist es" : "sind es"}{" "}
               <strong>
-                {zahl(e.referenz)} {einheit}
+                {heute} {einheit}
               </strong>
               .{" "}
               {verschwindet ? (
@@ -107,12 +112,11 @@ export default function SaisonExposition({ eintraege }: { eintraege: SaisonExpos
                 </>
               ) : (
                 <>
-                  In diesem Szenario sind es{" "}
+                  In diesem Szenario {kuenftig === "1" ? "ist es" : "sind es"}{" "}
                   <strong className={f.text}>
-                    {zahl(e.zukunft)} {einheitKurz}
+                    {kuenftig} {einheitKurz}
                   </strong>{" "}
-                  — {wirdMehr ? "ein Plus" : "ein Minus"} von {zahl(Math.abs(e.delta))}{" "}
-                  {einheitDativ}
+                  — {wirdMehr ? "ein Plus" : "ein Minus"} von {abstand} {einheitDativ}
                   {e.delta_relativ != null && Math.abs(e.referenz) >= 5 && (
                     <> ({wirdMehr ? "+" : "−"}
                     {Math.round(Math.abs(e.delta_relativ) * 100)} %)</>

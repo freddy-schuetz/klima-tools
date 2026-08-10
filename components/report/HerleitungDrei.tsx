@@ -103,6 +103,10 @@ export default function HerleitungDrei({ v }: { v: VerschneidungT }) {
   // an der Zahl doppelt gemoppelt und liest sich falsch: „kommen +5 Tage dazu".
   const ohneVorzeichen = (n: number) =>
     n.toLocaleString("de-DE", { minimumFractionDigits: nachkomma, maximumFractionDigits: nachkomma });
+  // Einzahl nach der ANGEZEIGTEN Zahl: 1,04 wird als „1" gedruckt und verlangt
+  // dann „kommt 1 Tag dazu", nicht „kommen 1 Tage dazu".
+  const staerksteBetrag = staerkste ? ohneVorzeichen(Math.abs(staerkste.delta)) : "";
+  const staerksteEinzahl = staerksteBetrag === "1";
 
   return (
     <section className="mb-6 break-inside-avoid rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 print:shadow-none">
@@ -153,10 +157,12 @@ export default function HerleitungDrei({ v }: { v: VerschneidungT }) {
                 <>
                   {" "}
                   Am stärksten der {staerkste.name} — dort{" "}
-                  {staerkste.delta > 0 ? "kommen" : "verschwinden"}{" "}
+                  {staerkste.delta > 0
+                    ? staerksteEinzahl ? "kommt" : "kommen"
+                    : staerksteEinzahl ? "verschwindet" : "verschwinden"}{" "}
                   <strong>
-                    {ohneVorzeichen(Math.abs(staerkste.delta))}{" "}
-                    {einheitImSatz(v.einheit, "nominativ", "kurz")}
+                    {staerksteBetrag}{" "}
+                    {einheitImSatz(v.einheit, "nominativ", "kurz", staerksteEinzahl)}
                   </strong>{" "}
                   {staerkste.delta > 0 ? "dazu" : ""} ({dz(staerkste.delta_relativ * 100)} %). Er ist
                   heute {monatsrolle(staerkste.anteil)} mit {prozent(staerkste.anteil)} Ihrer

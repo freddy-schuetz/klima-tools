@@ -66,30 +66,33 @@ export function monatsrolle(anteil: number): string {
  * Satz liest sich wie ein Formular.
  * Gegenstück zu EINHEIT_IM_SATZ in app/report/klartext.py.
  */
-const EINHEITEN: Record<string, { lang: string; langD: string; kurz: string; kurzD: string }> = {
-  "Tage/Jahr": { lang: "Tage im Jahr", langD: "Tagen im Jahr", kurz: "Tage", kurzD: "Tagen" },
-  "Tage/Winter": { lang: "Tage je Winter", langD: "Tagen je Winter", kurz: "Tage", kurzD: "Tagen" },
-  "Nächte/Jahr": { lang: "Nächte im Jahr", langD: "Nächten im Jahr", kurz: "Nächte", kurzD: "Nächten" },
-  "Stunden/Jahr": { lang: "Stunden im Jahr", langD: "Stunden im Jahr", kurz: "Stunden", kurzD: "Stunden" },
-  Tage: { lang: "Tage", langD: "Tagen", kurz: "Tage", kurzD: "Tagen" },
-  Nächte: { lang: "Nächte", langD: "Nächten", kurz: "Nächte", kurzD: "Nächten" },
-  Stunden: { lang: "Stunden", langD: "Stunden", kurz: "Stunden", kurzD: "Stunden" },
-  "°C": { lang: "Grad", langD: "Grad", kurz: "Grad", kurzD: "Grad" },
-  "%": { lang: "Prozent", langD: "Prozent", kurz: "Prozent", kurzD: "Prozent" },
-  "mm/Tag": { lang: "Millimeter am Tag", langD: "Millimetern am Tag", kurz: "Millimeter", kurzD: "Millimetern" },
-  "kg/m²": { lang: "Kilogramm je Quadratmeter", langD: "Kilogramm je Quadratmeter", kurz: "Kilogramm", kurzD: "Kilogramm" },
-  "m/s": { lang: "Meter je Sekunde", langD: "Metern je Sekunde", kurz: "Meter", kurzD: "Metern" },
+type Einheit = { kurz: string; kurzD: string; ez: string; zusatz: string };
+
+const EINHEITEN: Record<string, Einheit> = {
+  "Tage/Jahr": { kurz: "Tage", kurzD: "Tagen", ez: "Tag", zusatz: " im Jahr" },
+  "Tage/Winter": { kurz: "Tage", kurzD: "Tagen", ez: "Tag", zusatz: " je Winter" },
+  "Nächte/Jahr": { kurz: "Nächte", kurzD: "Nächten", ez: "Nacht", zusatz: " im Jahr" },
+  "Stunden/Jahr": { kurz: "Stunden", kurzD: "Stunden", ez: "Stunde", zusatz: " im Jahr" },
+  Tage: { kurz: "Tage", kurzD: "Tagen", ez: "Tag", zusatz: "" },
+  Nächte: { kurz: "Nächte", kurzD: "Nächten", ez: "Nacht", zusatz: "" },
+  Stunden: { kurz: "Stunden", kurzD: "Stunden", ez: "Stunde", zusatz: "" },
+  "°C": { kurz: "Grad", kurzD: "Grad", ez: "Grad", zusatz: "" },
+  "%": { kurz: "Prozent", kurzD: "Prozent", ez: "Prozent", zusatz: "" },
+  "mm/Tag": { kurz: "Millimeter", kurzD: "Millimetern", ez: "Millimeter", zusatz: " am Tag" },
+  "kg/m²": { kurz: "Kilogramm", kurzD: "Kilogramm", ez: "Kilogramm", zusatz: " je Quadratmeter" },
+  "m/s": { kurz: "Meter", kurzD: "Metern", ez: "Meter", zusatz: " je Sekunde" },
 };
 
 export function einheitImSatz(
   kuerzel: string,
   fall: "nominativ" | "dativ" = "nominativ",
   form: "lang" | "kurz" = "lang",
+  einzahl = false,
 ): string {
   const e = EINHEITEN[kuerzel];
   if (!e) return kuerzel;
-  if (form === "kurz") return fall === "dativ" ? e.kurzD : e.kurz;
-  return fall === "dativ" ? e.langD : e.lang;
+  const basis = einzahl ? e.ez : fall === "dativ" ? e.kurzD : e.kurz;
+  return form === "lang" ? basis + e.zusatz : basis;
 }
 
 /**
