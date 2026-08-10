@@ -318,6 +318,13 @@ const DEMO_REPORTS: { ort: string; typ: string; kreis: string; kern: string; tok
     kern: "Städtetourismus ist weniger saisonabhängig — dafür trifft steigende Hitzebelastung hier auf Fußgängerzonen und Außengastronomie, und mit Travemünde hängt ein Badebetrieb daran.",
     token: "aqHkerPuWX7LnxFXCoVt6g",
   },
+  {
+    ort: "Brandenburg",
+    typ: "Ganzes Bundesland · Landesmarketing",
+    kreis: "Land Brandenburg, 18 Landkreise",
+    kern: "Der fünfte Zuschnitt ist kein Ort, sondern ein Land: Median über die 18 Landkreise, und die Spanne zeigt, wo im Land es wen trifft. Die Eistage haben sich seit 1991–2020 halbiert, die heißen Tage nehmen weiter zu — für ein Reiseland, dessen Sommer am Wasser stattfindet, die entscheidende Größe.",
+    token: "qO1CNLT18JzCaeM4Gx4Q8Q",
+  },
 ];
 
 function TiefenReportSektion() {
