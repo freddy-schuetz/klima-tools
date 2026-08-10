@@ -40,8 +40,10 @@ const FARBE: Record<string, string> = {
 const BASISFARBE = "#334155";
 
 const B = 680;
-const H = 132;
-const RAND = { links: 34, rechts: 40, oben: 14, unten: 34 };
+const H = 152;
+// Unten stehen drei Zeilen übereinander: Spaltenname, Jahreszahlen, Herkunft.
+// Mit 34 px klebten sie aufeinander.
+const RAND = { links: 34, rechts: 40, oben: 16, unten: 52 };
 
 const zahl = (n: number) =>
   n.toLocaleString("de-DE", { maximumFractionDigits: Math.abs(n) < 10 && n % 1 !== 0 ? 1 : 0 });
@@ -104,16 +106,23 @@ export default function Stufenband({
       .filter((p) => p.zeitfenster === f)
       .sort((a, b) => b.wert - a.wert);
     let letztes = -Infinity;
+    const beschriftet = new Set<string>();
     for (const p of inSpalte) {
+      // Liegen zwei Szenarien auf demselben Wert, ist die zweite Beschriftung
+      // keine Information, sondern eine Dopplung — "0 / 0" untereinander sieht
+      // aus wie ein Fehler. Dann steht die Zahl einmal in neutralem Grau.
+      const text = zahl(p.wert);
+      if (beschriftet.has(text)) continue;
+      const doppelt = inSpalte.filter((q) => zahl(q.wert) === text).length > 1;
+      beschriftet.add(text);
       // Beschriftungen auseinanderziehen, sonst kleben 75 und 67 übereinander.
-      const roh = yPlateau(p.wert) + 3.5;
-      const platz = Math.max(roh, letztes + 12);
+      const platz = Math.max(yPlateau(p.wert) + 3.5, letztes + 12);
       letztes = platz;
       marken.push({
         x: mitteVon(i + 1) + halb + 4,
         y: platz,
-        text: zahl(p.wert),
-        farbe: FARBE[p.szenario] ?? BASISFARBE,
+        text,
+        farbe: doppelt ? BASISFARBE : (FARBE[p.szenario] ?? BASISFARBE),
       });
     }
   });
@@ -170,6 +179,10 @@ export default function Stufenband({
               stroke={BASISFARBE} strokeWidth="3.4" strokeLinecap="round" />
         {verlauf.map((p, i) => {
           const spalte = fenster.indexOf(p.zeitfenster) + 1;
+          // Deckt ein Szenario das andere exakt, wird das obere gestrichelt —
+          // sonst verschwindet es und der Leser sieht nur eine Linie.
+          const verdeckt =
+            verlauf.findIndex((q) => q.zeitfenster === p.zeitfenster && zahl(q.wert) === zahl(p.wert)) < i;
           return (
             <line
               key={`${p.szenario}-${p.zeitfenster}-${i}`}
@@ -180,6 +193,7 @@ export default function Stufenband({
               stroke={FARBE[p.szenario] ?? BASISFARBE}
               strokeWidth="3.4"
               strokeLinecap="round"
+              strokeDasharray={verdeckt ? "5 4" : undefined}
             />
           );
         })}
@@ -204,8 +218,11 @@ export default function Stufenband({
           </g>
         ))}
 
-        <text x={RAND.links} y={H - 2} fontSize="9" fill="#94a3b8">
-          {quelltext} · Spalten gleich breit, kein Zeitmaßstab
+        {/* Herkunft und der Tausch, den die Form macht — als SVG-Text, nicht als
+            HTML-Bildunterschrift: Wer die Grafik herauskopiert oder teilt, nimmt
+            das Kleingedruckte sonst nicht mit. */}
+        <text x={RAND.links} y={H - 6} fontSize="8.5" fill="#94a3b8">
+          {quelltext} · gleich breite Spalten, kein Zeitmaßstab · Mittel über je 20 Jahre
         </text>
         <text x={B - RAND.rechts} y={RAND.oben - 3} textAnchor="end" fontSize="9.5" fill="#94a3b8">
           {einheitImSatz(einheit)}
