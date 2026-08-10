@@ -106,10 +106,15 @@ export default function KlimacheckPage() {
       <header className="mb-8">
         <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-accent">Klima-Toolbox</p>
         <h1 className="mb-2 text-3xl font-bold text-brand">🌡️ Destinations-Klimacheck</h1>
+        {/* Die Fachbegriffe (ERA5, CMIP6) stehen weiter unten in der Methodik,
+            wo sie hingehören — hier standen sie im ersten Satz und mussten vom
+            Leser übersetzt werden, bevor er wusste, worum es geht. */}
         <p className="max-w-2xl text-sm leading-relaxed text-slate-600">
-          Wie verändert der Klimawandel <strong>deinen Ort</strong> — nicht dein Reisegebiet, nicht deinen
-          Landkreis? Die gemessene Gegenwart (ERA5-Normalperiode 1991–2020) trifft die CMIP6-Projektion um 2050,
-          inklusive <strong>Saisonfenster-Verschiebung</strong> und konkreten Handlungsfeldern.
+          Wie verändert sich das Klima an <strong>Ihrem Ort</strong> — nicht im Reisegebiet, nicht im
+          Landkreis? Der Check legt die gemessenen Jahre 1991–2020 neben das, was die Klimamodelle für
+          die Zeit um 2050 rechnen: wie viele warme, heiße und frostige Tage dazukommen oder wegfallen,{" "}
+          <strong>wie sich Ihre gute Draußen-Zeit im Jahr verschiebt</strong> — und was daraus für den
+          Betrieb folgt.
         </p>
       </header>
 
@@ -256,7 +261,7 @@ export default function KlimacheckPage() {
             <p className="mb-2">
               Dieser Check ist der Schnell-Einstieg. Für die amtliche Tiefe:{" "}
               <a className="text-brand-accent underline-offset-2 hover:underline" href="https://gis.uba.de/maps/resources/apps/tourismus/index.html?lang=de" target="_blank" rel="noopener noreferrer">UBA „Klimawandel und Tourismus"</a>{" · "}
-              <a className="text-brand-accent underline-offset-2 hover:underline" href="https://www.gerics.de/products_and_publications/fact_sheets/landkreise/index.php.de" target="_blank" rel="noopener noreferrer">GERICS-Klimaausblick für deinen Landkreis</a>{" · "}
+              <a className="text-brand-accent underline-offset-2 hover:underline" href="https://www.gerics.de/products_and_publications/fact_sheets/landkreise/index.php.de" target="_blank" rel="noopener noreferrer">GERICS-Klimaausblick für Ihren Landkreis</a>{" · "}
               <a className="text-brand-accent underline-offset-2 hover:underline" href="https://www.klivoportal.de/" target="_blank" rel="noopener noreferrer">KLiVO-Katalog</a>
             </p>
             <p className="text-xs text-slate-500">

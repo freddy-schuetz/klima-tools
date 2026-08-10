@@ -29,6 +29,7 @@ import {
 import Zeitstrahl, { type ZeitstrahlT } from "@/components/report/Zeitstrahl";
 import HerleitungDrei, { type VerschneidungT } from "@/components/report/HerleitungDrei";
 import Aufklappbar from "@/components/report/Aufklappbar";
+import EigeneDestination from "@/components/report/EigeneDestination";
 import { einheitImSatz } from "@/lib/klartext";
 import { Fahrplan, MassnahmeKarte, type MassnahmenkapitelT } from "@/components/report/Massnahmen";
 
@@ -262,6 +263,12 @@ export default function TiefenReportPage({ params }: { params: Promise<{ token: 
           Erstellt am {new Date(r.erstellt).toLocaleDateString("de-DE")} · {r.pflichthinweise.positionierung}
         </p>
       </header>
+
+      {/* Der Weg von „interessant" zu „für uns bitte auch" — gleich oben, weil
+          der Entschluss beim Überfliegen fällt und nicht auf Seite 30. Trägt
+          `print:hidden`: Im PDF, das in Sitzungen herumgereicht wird, wäre ein
+          Eingabefeld bestenfalls tot. */}
+      <EigeneDestination quelle={d.name} />
 
       <Luecken luecken={k.methodik.luecken} />
 
