@@ -5,6 +5,8 @@
 // Einschränkungen stehen IN der Grafik, nicht im Kleingedruckten: Grafiken
 // werden einzeln geteilt und verlieren dabei jede Fußnote.
 
+import { SZENARIO_SATZ } from "@/lib/klartext";
+
 export type AnalogonWolke = {
   verfuegbar: boolean;
   haeufigste: [string, number][];
@@ -23,10 +25,10 @@ export type AnalogonT = {
   methodik: string;
 };
 
-const SZENARIO: Record<string, string> = {
-  rcp45: "RCP4.5 — mittlerer Pfad",
-  rcp85: "RCP8.5 — Hochemissionspfad",
-};
+// Kein eigener Vorrat an Szenario-Namen: Zwei Kopien derselben Liste sind zwei
+// Chancen, dass eine davon beim naechsten Umbau stehen bleibt — genau das ist
+// hier passiert, das Kapitel sagte noch "mittlerer Pfad".
+const SZENARIO = SZENARIO_SATZ;
 
 function einigkeitsText(w: AnalogonWolke) {
   const anteil = Math.round(w.einigkeit * 100);

@@ -6,6 +6,8 @@
 // 2. Keine Rot-Grün-Skala: Blau (Chance) gegen Orange (Risiko) bleibt auch bei
 //    Rot-Grün-Sehschwäche unterscheidbar, und die Richtung steht zusätzlich als Text da.
 
+import { SZENARIO_SATZ } from "@/lib/klartext";
+
 export type MatrixMonat = {
   monat: number;
   name: string;
@@ -40,10 +42,10 @@ export type MatrixT = {
   schwellen_hinweis: string;
 };
 
-const SZENARIO: Record<string, string> = {
-  rcp45: "RCP4.5 — mittlerer Pfad",
-  rcp85: "RCP8.5 — Hochemissionspfad",
-};
+// Kein eigener Vorrat an Szenario-Namen: Zwei Kopien derselben Liste sind zwei
+// Chancen, dass eine davon beim naechsten Umbau stehen bleibt — genau das ist
+// hier passiert, das Kapitel sagte noch "mittlerer Pfad".
+const SZENARIO = SZENARIO_SATZ;
 
 function farbe(m: MatrixMonat) {
   if (!m.verfuegbar || m.richtung === "neutral" || !m.richtung) return "bg-slate-100 text-slate-500";
