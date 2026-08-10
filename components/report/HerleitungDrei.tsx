@@ -39,6 +39,9 @@ export type ExpositionsmonatT = {
 export type VerschneidungT = Omit<MatrixT, "monate" | "summe"> & {
   indikator: string;
   indikator_erklaerung?: string;
+  /** Was Zunahme oder Abnahme im Betrieb bedeutet — die Frage hinter der Zahl. */
+  wirkung?: string;
+  urteil_hinweis?: string;
   quelle_id: string;
   validitaet: string;
   hoeher_ist_besser: boolean;
@@ -208,6 +211,22 @@ export default function HerleitungDrei({ v }: { v: VerschneidungT }) {
           }
         />
       </Schritt>
+
+      {/* Schritt 4 ohne Nummer: Die drei Balken sagen, WIE VIEL sich ändert und
+          WO — nicht, was das heißt. Genau das war die Rückfrage. */}
+      {v.wirkung && (
+        <div className="mt-4 rounded-xl bg-slate-50 p-3">
+          <h5 className="mb-1 text-sm font-semibold text-brand">Was das im Betrieb heißt</h5>
+          <p className="text-sm leading-relaxed text-slate-800">{v.wirkung}</p>
+        </div>
+      )}
+
+      {v.urteil_hinweis && (
+        <p className="mt-2 rounded-lg bg-amber-50 p-3 text-sm leading-relaxed text-amber-900">
+          <span className="font-semibold">Vorsicht bei der Lesart: </span>
+          {v.urteil_hinweis}
+        </p>
+      )}
 
       <p className="mt-3 text-[11px] leading-relaxed text-slate-500">
         Was hier „deutlich verändert" heißt: mindestens 15 Prozent Veränderung gegenüber heute und

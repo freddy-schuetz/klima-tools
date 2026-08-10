@@ -64,7 +64,13 @@ type ReportJson = {
       hinweis: string;
     };
     zukunft: Record<string, { label: string; einheit: string; werte: WertT[] }>;
-    matrix: { verfuegbar: boolean; verschneidungen?: (VerschneidungT | SaisonExpositionT)[]; grund?: string };
+    matrix: {
+      verfuegbar: boolean;
+      verschneidungen?: (VerschneidungT | SaisonExpositionT)[];
+      grund?: string;
+      /** Woher die Aussagen „Was das im Betrieb heißt" stammen. */
+      wirkung_herkunft?: string;
+    };
     segmente: { aktiv: string[]; typ?: string; titel?: string; leitfrage?: string; text?: string };
     analogon: AnalogonT;
     benchmark?: { verfuegbar: boolean; hinweis?: string };
@@ -298,13 +304,19 @@ export default function TiefenReportPage({ params }: { params: Promise<{ token: 
               "Klimaveränderung allein sagt noch nichts über Ihr Geschäft — entscheidend ist, ob sie " +
               "in den Monaten stattfindet, in denen Ihre Gäste kommen. Deshalb wird hier beides " +
               "übereinandergelegt: Ihre Übernachtungen Monat für Monat und die Veränderung Monat für " +
-              "Monat. Heraus kommt, wie viel Prozent Ihres heutigen Geschäfts überhaupt berührt ist."
+              "Monat. Heraus kommt, wie viel Prozent Ihres heutigen Geschäfts überhaupt berührt ist — " +
+              "und was das im Betrieb bedeutet."
             }
           />
           {auswahl.kurzMonatlich.map((v) => (
             <HerleitungDrei key={`${v.indikator}-${v.szenario}-${v.zeitfenster}`} v={v} />
           ))}
           {auswahl.kurzSaisonal.length > 0 && <SaisonExposition eintraege={auswahl.kurzSaisonal} />}
+          {k.matrix.wirkung_herkunft && (
+            <p className="mt-3 text-[11px] leading-relaxed text-slate-500">
+              {k.matrix.wirkung_herkunft}
+            </p>
+          )}
           {(auswahl.restMonatlich.length > 0 || auswahl.restSaisonal.length > 0) && (
             <Aufklappbar
               titel="Alle Expositionen im Überblick"

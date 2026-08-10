@@ -15,12 +15,24 @@
 "use client";
 
 import { aufzaehlung, einheitImSatz, naechte, SZENARIO_SATZ, zeitraumLage } from "@/lib/klartext";
+import Stufenband, { type VerlaufspunktT } from "./Stufenband";
 
 export type SaisonExpositionT = {
   art: "saisonal";
   indikator: string;
   indikator_label: string;
   indikator_erklaerung?: string;
+  /** Was Zunahme oder Abnahme im Betrieb bedeutet — die Frage hinter der Zahl. */
+  wirkung?: string;
+  /** Warum die naheliegende Lesart hier nicht gilt (z. B. Kunstschnee, Spätfrost). */
+  urteil_hinweis?: string;
+  hinweis_kappung?: string;
+  /** Alle gerechneten Zeitfenster derselben Quelle und Höhenstufe. */
+  verlauf?: VerlaufspunktT[];
+  /** Die Bezugsperiode der Quelle — NICHT „heute". */
+  referenz_zeitfenster?: string;
+  referenz_art?: "messung" | "modellbasis";
+  quelle_id?: string;
   einheit: string;
   szenario: string;
   zeitfenster: string;
@@ -99,9 +111,20 @@ export default function SaisonExposition({ eintraege }: { eintraege: SaisonExpos
               </p>
             </figcaption>
 
-            {/* Der Befund als Satz — die Zahlen stehen darin, nicht daneben. */}
+            {/* Der Befund als Satz — die Zahlen stehen darin, nicht daneben.
+                Der Ausgangswert heißt NICHT „heute": Er ist die Bezugsperiode
+                der Quelle. Kapitel 1 darf „heute" sagen, weil es die
+                Modelländerung auf die gemessene Reihe umrechnet; hier gibt es
+                für Schnee gar keine Messreihe. */}
             <p className="text-sm leading-relaxed text-slate-800">
-              Heute {heute === "1" ? "ist es" : "sind es"}{" "}
+              {e.referenz_zeitfenster ? (
+                <>
+                  {e.referenz_zeitfenster.replace("-", " bis ")}{" "}
+                  {e.referenz_art === "messung" ? "waren gemessen" : "waren es im Modell"}{" "}
+                </>
+              ) : (
+                <>Der Ausgangswert liegt bei </>
+              )}
               <strong>
                 {heute} {einheit}
               </strong>
@@ -126,6 +149,17 @@ export default function SaisonExposition({ eintraege }: { eintraege: SaisonExpos
               )}
             </p>
 
+            {/* Die Entwicklung als Bild — sofern mehr als ein Fenster gerechnet ist. */}
+            {e.verlauf && e.verlauf.length > 0 && (
+              <Stufenband
+                verlauf={e.verlauf}
+                basis={e.referenz}
+                basisFenster={e.referenz_zeitfenster}
+                einheit={e.einheit}
+                quelle={e.quelle_id}
+              />
+            )}
+
             <p className="mt-2 text-sm leading-relaxed text-slate-700">
               Wirksam wird das in {aufzaehlung(e.wirkmonate)} — {e.wirkmonate.length === 1 ? "dem Monat" : "den Monaten"},
               in {e.wirkmonate.length === 1 ? "dem" : "denen"} heute <strong>{anteil} %</strong> Ihrer
@@ -133,10 +167,26 @@ export default function SaisonExposition({ eintraege }: { eintraege: SaisonExpos
               {e.naechte_in_wirkmonaten != null && <> ({naechte(e.naechte_in_wirkmonaten)} Nächte)</>}.
             </p>
 
+            {/* Die Frage hinter der Zahl: was heißt das im Betrieb? */}
+            {e.wirkung && (
+              <p className="mt-2 rounded-lg bg-slate-50 p-3 text-sm leading-relaxed text-slate-800">
+                <span className="font-semibold text-brand">Was das im Betrieb heißt: </span>
+                {e.wirkung}
+              </p>
+            )}
+
+            {e.urteil_hinweis && (
+              <p className="mt-2 rounded-lg bg-amber-50 p-3 text-sm leading-relaxed text-amber-900">
+                <span className="font-semibold">Vorsicht bei der Lesart: </span>
+                {e.urteil_hinweis}
+              </p>
+            )}
+
             <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
               Dieser Wert gilt für den gesamten Zeitraum, nicht für einzelne Monate — er zeigt die
               Größenordnung, nicht den genauen Monat. Und er sagt, wie viel Ihres heutigen Geschäfts
               betroffen ist, nicht wie viele Gäste kommen werden.
+              {e.hinweis_kappung && <> {e.hinweis_kappung}</>}
             </p>
           </figure>
         );
