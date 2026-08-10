@@ -57,29 +57,39 @@ export function monatsrolle(anteil: number): string {
 
 /**
  * Einheit im Satz statt als Kürzel: „96 Tage im Jahr" liest sich, „96
- * Tage/Winter" muss man übersetzen. Der zweite Eintrag ist die Dativform, damit
- * „ein Plus von 18 Tagen" nicht als „ein Plus von 18 Tage" endet.
+ * Tage/Winter" muss man übersetzen.
+ *
+ * Vier Formen, weil ein Satz alle vier braucht. Der Dativ, damit „ein Plus von
+ * 18 Tagen" nicht als „ein Plus von 18 Tage" endet. Und die Kurzform, weil der
+ * Bezugsrahmen nur einmal gesagt werden muss: „Heute sind es 1,1 Tage im Jahr,
+ * im Szenario 19,3 Tage — ein Plus von 18,2 Tagen." Dreimal „im Jahr" im selben
+ * Satz liest sich wie ein Formular.
  * Gegenstück zu EINHEIT_IM_SATZ in app/report/klartext.py.
  */
-const EINHEITEN: Record<string, [string, string]> = {
-  "Tage/Jahr": ["Tage im Jahr", "Tagen im Jahr"],
-  "Tage/Winter": ["Tage je Winter", "Tagen je Winter"],
-  "Nächte/Jahr": ["Nächte im Jahr", "Nächten im Jahr"],
-  "Stunden/Jahr": ["Stunden im Jahr", "Stunden im Jahr"],
-  Tage: ["Tage", "Tagen"],
-  Nächte: ["Nächte", "Nächten"],
-  Stunden: ["Stunden", "Stunden"],
-  "°C": ["Grad", "Grad"],
-  "%": ["Prozent", "Prozent"],
-  "mm/Tag": ["Millimeter am Tag", "Millimetern am Tag"],
-  "kg/m²": ["Kilogramm je Quadratmeter", "Kilogramm je Quadratmeter"],
-  "m/s": ["Meter je Sekunde", "Metern je Sekunde"],
+const EINHEITEN: Record<string, { lang: string; langD: string; kurz: string; kurzD: string }> = {
+  "Tage/Jahr": { lang: "Tage im Jahr", langD: "Tagen im Jahr", kurz: "Tage", kurzD: "Tagen" },
+  "Tage/Winter": { lang: "Tage je Winter", langD: "Tagen je Winter", kurz: "Tage", kurzD: "Tagen" },
+  "Nächte/Jahr": { lang: "Nächte im Jahr", langD: "Nächten im Jahr", kurz: "Nächte", kurzD: "Nächten" },
+  "Stunden/Jahr": { lang: "Stunden im Jahr", langD: "Stunden im Jahr", kurz: "Stunden", kurzD: "Stunden" },
+  Tage: { lang: "Tage", langD: "Tagen", kurz: "Tage", kurzD: "Tagen" },
+  Nächte: { lang: "Nächte", langD: "Nächten", kurz: "Nächte", kurzD: "Nächten" },
+  Stunden: { lang: "Stunden", langD: "Stunden", kurz: "Stunden", kurzD: "Stunden" },
+  "°C": { lang: "Grad", langD: "Grad", kurz: "Grad", kurzD: "Grad" },
+  "%": { lang: "Prozent", langD: "Prozent", kurz: "Prozent", kurzD: "Prozent" },
+  "mm/Tag": { lang: "Millimeter am Tag", langD: "Millimetern am Tag", kurz: "Millimeter", kurzD: "Millimetern" },
+  "kg/m²": { lang: "Kilogramm je Quadratmeter", langD: "Kilogramm je Quadratmeter", kurz: "Kilogramm", kurzD: "Kilogramm" },
+  "m/s": { lang: "Meter je Sekunde", langD: "Metern je Sekunde", kurz: "Meter", kurzD: "Metern" },
 };
 
-export function einheitImSatz(kuerzel: string, fall: "nominativ" | "dativ" = "nominativ"): string {
-  const paar = EINHEITEN[kuerzel];
-  if (!paar) return kuerzel;
-  return fall === "dativ" ? paar[1] : paar[0];
+export function einheitImSatz(
+  kuerzel: string,
+  fall: "nominativ" | "dativ" = "nominativ",
+  form: "lang" | "kurz" = "lang",
+): string {
+  const e = EINHEITEN[kuerzel];
+  if (!e) return kuerzel;
+  if (form === "kurz") return fall === "dativ" ? e.kurzD : e.kurz;
+  return fall === "dativ" ? e.langD : e.lang;
 }
 
 /**

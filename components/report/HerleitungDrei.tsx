@@ -155,7 +155,8 @@ export default function HerleitungDrei({ v }: { v: VerschneidungT }) {
                   Am stärksten der {staerkste.name} — dort{" "}
                   {staerkste.delta > 0 ? "kommen" : "verschwinden"}{" "}
                   <strong>
-                    {ohneVorzeichen(Math.abs(staerkste.delta))} {einheitImSatz(v.einheit)}
+                    {ohneVorzeichen(Math.abs(staerkste.delta))}{" "}
+                    {einheitImSatz(v.einheit, "nominativ", "kurz")}
                   </strong>{" "}
                   {staerkste.delta > 0 ? "dazu" : ""} ({dz(staerkste.delta_relativ * 100)} %). Er ist
                   heute {monatsrolle(staerkste.anteil)} mit {prozent(staerkste.anteil)} Ihrer

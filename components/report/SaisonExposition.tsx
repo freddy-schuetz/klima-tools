@@ -70,8 +70,11 @@ export default function SaisonExposition({ eintraege }: { eintraege: SaisonExpos
     <div className="space-y-3">
       {sortiert.map((e, i) => {
         const f = FARBE[e.richtung] ?? FARBE.neutral;
+        // Der Bezugsrahmen („im Jahr", „je Winter") steht einmal am Anfang; die
+        // folgenden Zahlen im selben Satz beziehen sich erkennbar darauf.
         const einheit = einheitImSatz(e.einheit);
-        const einheitDativ = einheitImSatz(e.einheit, "dativ");
+        const einheitKurz = einheitImSatz(e.einheit, "nominativ", "kurz");
+        const einheitDativ = einheitImSatz(e.einheit, "dativ", "kurz");
         const wirdMehr = e.delta > 0;
         const verschwindet = Math.abs(e.zukunft) < 0.05;
         const anteil = Math.round(e.anteil_uebernachtungen * 100);
@@ -106,7 +109,7 @@ export default function SaisonExposition({ eintraege }: { eintraege: SaisonExpos
                 <>
                   In diesem Szenario sind es{" "}
                   <strong className={f.text}>
-                    {zahl(e.zukunft)} {einheit}
+                    {zahl(e.zukunft)} {einheitKurz}
                   </strong>{" "}
                   — {wirdMehr ? "ein Plus" : "ein Minus"} von {zahl(Math.abs(e.delta))}{" "}
                   {einheitDativ}

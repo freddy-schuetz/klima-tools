@@ -29,6 +29,7 @@ import {
 import Zeitstrahl, { type ZeitstrahlT } from "@/components/report/Zeitstrahl";
 import HerleitungDrei, { type VerschneidungT } from "@/components/report/HerleitungDrei";
 import Aufklappbar from "@/components/report/Aufklappbar";
+import { einheitImSatz } from "@/lib/klartext";
 import { Fahrplan, MassnahmeKarte, type MassnahmenkapitelT } from "@/components/report/Massnahmen";
 
 type Saisonmonat = { monat: number; name: string; anteil: number; anteil_min: number; anteil_max: number };
@@ -439,7 +440,9 @@ export default function TiefenReportPage({ params }: { params: Promise<{ token: 
                 <div key={schluessel}>
                   <dt className="font-semibold text-slate-800">
                     {g.name}{" "}
-                    <span className="font-normal text-slate-400">· {g.einheit}</span>
+                    <span className="font-normal text-slate-400">
+                      · {einheitImSatz(g.einheit)}
+                    </span>
                   </dt>
                   <dd className="text-slate-600">
                     {g.erklaerung}
