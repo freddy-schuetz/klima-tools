@@ -285,7 +285,12 @@ export default function TiefenReportPage({ params }: { params: Promise<{ token: 
           <Kapitelkopf
             nummer={2}
             titel="Wo der Klimawandel Ihre Saison trifft"
-            unterzeile={r.pflichthinweise.exposition}
+            unterzeile={
+              "Klimaveränderung allein sagt noch nichts über Ihr Geschäft — entscheidend ist, ob sie " +
+              "in den Monaten stattfindet, in denen Ihre Gäste kommen. Deshalb wird hier beides " +
+              "übereinandergelegt: Ihre Übernachtungen Monat für Monat und die Veränderung Monat für " +
+              "Monat. Heraus kommt, wie viel Prozent Ihres heutigen Geschäfts überhaupt berührt ist."
+            }
           />
           {auswahl.kurzMonatlich.map((v) => (
             <HerleitungDrei key={`${v.indikator}-${v.szenario}-${v.zeitfenster}`} v={v} />

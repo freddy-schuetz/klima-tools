@@ -58,9 +58,14 @@ export type ZeitstrahlT = {
   projektion: { eigenrechnung?: boolean }[];
 };
 
+// Ein Szenario wird über seine URSACHE benannt, nicht über seine Kennziffer.
+// "RCP8.5" sagt niemandem etwas, "gedämpfter Pfad" auch nicht — es ist ja nicht
+// der Pfad gedämpft, sondern der Ausstoß. Dieselben Bezeichnungen stehen im
+// Backend in report/klartext.py; sie müssen zusammenbleiben.
 const SZENARIO: Record<string, { name: string; farbe: string }> = {
-  rcp45: { name: "gedämpftes Szenario", farbe: "#0284c7" },
-  rcp85: { name: "hohes Szenario", farbe: "#dc2626" },
+  rcp45: { name: "wenn der Ausstoß ab etwa 2040 sinkt", farbe: "#0284c7" },
+  rcp85: { name: "wenn der Ausstoß weiter steigt", farbe: "#dc2626" },
+  rcp26: { name: "wenn der Ausstoß schnell sinkt", farbe: "#16a34a" },
 };
 
 const MESSFARBE = "#14532d";
@@ -162,7 +167,10 @@ export default function Zeitstrahl({ strahl }: { strahl: ZeitstrahlT }) {
         {jahre.map((jahr, i) => {
           const w = m.werte[i];
           if (w == null) return null;
-          return <circle key={jahr} cx={x(jahr)} cy={y(w)} r="1.4" fill="#dfe5ec" />;
+          // Kräftiger als zuvor: mit #dfe5ec waren die Einzeljahre auf dem
+          // Bildschirm kaum und im Ausdruck gar nicht zu sehen — dabei sind sie
+          // das Argument dafür, dass ein einzelner Sommer nichts beweist.
+          return <circle key={jahr} cx={x(jahr)} cy={y(w)} r="1.9" fill="#9fb0c4" />;
         })}
 
         <path d={trendpfad} fill="none" stroke={MESSFARBE} strokeWidth="2.6" strokeLinejoin="round" />
@@ -204,7 +212,11 @@ export default function Zeitstrahl({ strahl }: { strahl: ZeitstrahlT }) {
       <ul className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-[11px] text-slate-600">
         <li className="flex items-center gap-1.5">
           <svg width="20" height="8" aria-hidden><line x1="0" y1="4" x2="20" y2="4" stroke={MESSFARBE} strokeWidth="2.6" /></svg>
-          bisher gemessen
+          gemessen (Mittel über elf Jahre)
+        </li>
+        <li className="flex items-center gap-1.5">
+          <svg width="12" height="8" aria-hidden><circle cx="6" cy="4" r="1.9" fill="#9fb0c4" /></svg>
+          einzelnes Jahr
         </li>
         {kurven.map((kurve) => (
           <li key={kurve.szenario} className="flex items-center gap-1.5">

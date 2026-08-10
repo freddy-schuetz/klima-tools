@@ -1,9 +1,20 @@
-// Saisonale Expositions-Analyse.
-//
-// Die meisten Klimaquellen liefern Jahres- oder Saisonwerte, keine Monatsreihen.
-// Statt die Verschneidung dann wegzulassen, wird der Indikator den Monaten
-// zugeordnet, in denen er entsteht — Schneetage dem Winter, Hitzetage dem
-// Sommer. Gröber als eine Monatsrechnung, und genau so wird es hier auch benannt.
+/**
+ * Befunde, die als Jahres- oder Saisonwert vorliegen — Schnee, Beschneiung, Hitze.
+ *
+ * Diese Kennzahlen gibt es nicht je Monat, sondern nur für den ganzen Winter
+ * oder das ganze Jahr. Sie lassen sich deshalb nicht wie die Monatsrechnung
+ * Monat für Monat mit der Saisonkurve verschneiden; zugeordnet werden sie den
+ * Monaten, in denen sie überhaupt wirken.
+ *
+ * Die erste Fassung stellte das als Kennzahlenblock dar: „heute 96 Tage / im
+ * Szenario 0 Tage (−96) / betroffener Anteil 39 % / rund 457.148 Nächte /
+ * Risiko · wirksam in Dezember, Januar, Februar, März". Fachlich vollständig,
+ * aber niemand liest daraus einen Satz. Jetzt steht der Satz da, und die Zahlen
+ * stehen darin.
+ */
+"use client";
+
+import { aufzaehlung, naechte, SZENARIO_SATZ, zeitraumLage } from "@/lib/klartext";
 
 export type SaisonExpositionT = {
   art: "saisonal";
@@ -16,8 +27,6 @@ export type SaisonExpositionT = {
   referenz: number;
   zukunft: number;
   delta: number;
-  // Relative Aenderung gegenueber der Referenz; im Kurzreport das Gewicht,
-  // mit dem entschieden wird, welche Befunde nach oben kommen.
   delta_relativ?: number;
   richtung: "chance" | "risiko" | "neutral";
   richtung_label: string;
@@ -29,30 +38,30 @@ export type SaisonExpositionT = {
   validitaet: string;
 };
 
-const SZENARIO: Record<string, string> = {
-  rcp45: "RCP4.5 — mittlerer Pfad",
-  rcp85: "RCP8.5 — Hochemissionspfad",
+// Blau gegen Orange statt Rot-Grün: bleibt auch bei Farbsehschwäche
+// unterscheidbar, und die Richtung steht zusätzlich als Text daneben.
+const FARBE: Record<string, { rand: string; strich: string; text: string }> = {
+  chance: { rand: "ring-sky-200", strich: "border-sky-500", text: "text-sky-900" },
+  risiko: { rand: "ring-orange-200", strich: "border-orange-500", text: "text-orange-900" },
+  neutral: { rand: "ring-slate-200", strich: "border-slate-300", text: "text-slate-700" },
 };
 
-// Blau gegen Orange statt Rot-Grün: bleibt auch bei Farbsehschwäche unterscheidbar,
-// und die Richtung steht zusätzlich als Text daneben.
-const FARBE: Record<string, { rand: string; feld: string; text: string }> = {
-  chance: { rand: "ring-sky-200", feld: "bg-sky-50", text: "text-sky-900" },
-  risiko: { rand: "ring-orange-200", feld: "bg-orange-50", text: "text-orange-900" },
-  neutral: { rand: "ring-slate-200", feld: "bg-slate-50", text: "text-slate-700" },
-};
-
-function zahl(n: number) {
-  return Math.abs(n) >= 100 ? Math.round(n).toLocaleString("de-DE") : (Math.round(n * 10) / 10).toLocaleString("de-DE");
+function zahl(n: number): string {
+  if (Math.abs(n) < 0.05) return "0";
+  return Math.abs(n) >= 100
+    ? Math.round(n).toLocaleString("de-DE")
+    : (Math.round(n * 10) / 10).toLocaleString("de-DE");
 }
 
+/** Die Einheit im Satz — „96 Tage", nicht „96 Tage/Winter". */
+const kurzeEinheit = (einheit: string) => einheit.split("/")[0].trim();
+
 export default function SaisonExposition({ eintraege }: { eintraege: SaisonExpositionT[] }) {
-  // Nur die Indikatoren zeigen, die sich überhaupt bewegen — eine Liste aus
-  // 37 Zeilen, von denen 30 "kaum verändert" sagen, liest niemand.
+  // Nur die Kennzahlen zeigen, die sich überhaupt bewegen — eine Liste aus
+  // 37 Zeilen, von denen 30 „kaum verändert" sagen, liest niemand.
   const relevant = eintraege.filter((e) => e.richtung !== "neutral");
   if (!relevant.length) return null;
 
-  // Je Indikator das ungünstigste Szenario zuerst, damit die Reihenfolge stabil ist.
   const sortiert = [...relevant].sort((a, b) => {
     if (a.richtung !== b.richtung) return a.richtung === "risiko" ? -1 : 1;
     return b.anteil_uebernachtungen - a.anteil_uebernachtungen;
@@ -62,53 +71,62 @@ export default function SaisonExposition({ eintraege }: { eintraege: SaisonExpos
     <div className="space-y-3">
       {sortiert.map((e, i) => {
         const f = FARBE[e.richtung] ?? FARBE.neutral;
+        const einheit = kurzeEinheit(e.einheit);
+        const wirdMehr = e.delta > 0;
+        const verschwindet = Math.abs(e.zukunft) < 0.05;
+        const anteil = Math.round(e.anteil_uebernachtungen * 100);
         return (
-          <figure key={`${e.indikator}-${e.szenario}-${e.zeitfenster}-${i}`}
-                  className={`rounded-2xl bg-white p-4 shadow-sm ring-1 ${f.rand}`}>
+          <figure
+            key={`${e.indikator}-${e.szenario}-${e.zeitfenster}-${i}`}
+            className={`break-inside-avoid rounded-2xl border-l-4 bg-white p-4 shadow-sm ring-1 print:shadow-none ${f.rand} ${f.strich}`}
+          >
             <figcaption className="mb-2">
-              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                <h4 className="font-semibold text-slate-900">{e.indikator_label}</h4>
-                <span className="text-xs text-slate-500">
-                  {SZENARIO[e.szenario] ?? e.szenario} · {e.zeitfenster}
-                </span>
-              </div>
-              <p className="mt-1 inline-block rounded bg-slate-800 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-                {e.label}
+              <h4 className="font-semibold text-slate-900">{e.indikator_label}</h4>
+              <p className="text-xs text-slate-500">
+                {zeitraumLage(e.zeitfenster)} ({e.zeitfenster}),{" "}
+                {SZENARIO_SATZ[e.szenario] ?? e.szenario}
               </p>
             </figcaption>
 
-            <div className={`grid gap-3 rounded-xl p-3 sm:grid-cols-3 ${f.feld}`}>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-slate-500">heute</p>
-                <p className="text-lg font-bold text-slate-900">
-                  {zahl(e.referenz)} <span className="text-sm font-normal">{e.einheit.split("/")[0]}</span>
-                </p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-slate-500">im Szenario</p>
-                <p className={`text-lg font-bold ${f.text}`}>
-                  {zahl(e.zukunft)} <span className="text-sm font-normal">{e.einheit.split("/")[0]}</span>
-                  <span className="ml-2 text-sm">({e.delta > 0 ? "+" : "−"}{zahl(Math.abs(e.delta))})</span>
-                </p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-slate-500">betroffener Anteil</p>
-                <p className="text-lg font-bold text-slate-900">
-                  {Math.round(e.anteil_uebernachtungen * 100)} %
-                </p>
-                {e.naechte_in_wirkmonaten != null && (
-                  <p className="text-xs text-slate-600">
-                    rund {e.naechte_in_wirkmonaten.toLocaleString("de-DE")} Nächte
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <p className="mt-2 text-xs text-slate-600">
-              <span className="font-medium">{e.richtung_label}</span> · wirksam in{" "}
-              {e.wirkmonate.join(", ")}
+            {/* Der Befund als Satz — die Zahlen stehen darin, nicht daneben. */}
+            <p className="text-sm leading-relaxed text-slate-800">
+              Heute liegt der Wert bei{" "}
+              <strong>
+                {zahl(e.referenz)} {einheit}
+              </strong>
+              .{" "}
+              {verschwindet ? (
+                <>
+                  In diesem Szenario bleibt davon <strong className={f.text}>nichts</strong> übrig.
+                </>
+              ) : (
+                <>
+                  In diesem Szenario sind es{" "}
+                  <strong className={f.text}>
+                    {zahl(e.zukunft)} {einheit}
+                  </strong>{" "}
+                  — {wirdMehr ? "ein Plus" : "ein Minus"} von {zahl(Math.abs(e.delta))}
+                  {e.delta_relativ != null && Math.abs(e.referenz) >= 5 && (
+                    <> ({wirdMehr ? "+" : "−"}
+                    {Math.round(Math.abs(e.delta_relativ) * 100)} %)</>
+                  )}
+                  .
+                </>
+              )}
             </p>
-            <p className="mt-1 text-xs leading-relaxed text-slate-500">{e.methodik}</p>
+
+            <p className="mt-2 text-sm leading-relaxed text-slate-700">
+              Wirksam wird das in {aufzaehlung(e.wirkmonate)} — {e.wirkmonate.length === 1 ? "dem Monat" : "den Monaten"},
+              in {e.wirkmonate.length === 1 ? "dem" : "denen"} heute <strong>{anteil} %</strong> Ihrer
+              Übernachtungen anfallen
+              {e.naechte_in_wirkmonaten != null && <> ({naechte(e.naechte_in_wirkmonaten)} Nächte)</>}.
+            </p>
+
+            <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
+              Dieser Wert gilt für den gesamten Zeitraum, nicht für einzelne Monate — er zeigt die
+              Größenordnung, nicht den genauen Monat. Und er sagt, wie viel Ihres heutigen Geschäfts
+              betroffen ist, nicht wie viele Gäste kommen werden.
+            </p>
           </figure>
         );
       })}

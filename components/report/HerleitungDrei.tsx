@@ -14,6 +14,7 @@
 "use client";
 
 import type { MatrixT } from "./Monatsmatrix";
+import { aufzaehlung, monatsrolle, naechte, SZENARIO_SATZ, zeitraumLage } from "@/lib/klartext";
 
 export type ExpositionsmonatT = {
   monat: number;
@@ -54,19 +55,8 @@ export type VerschneidungT = Omit<MatrixT, "monate" | "summe"> & {
 };
 
 const FARBE = { chance: "#0284c7", risiko: "#ea580c", neutral: "#cbd5e1" } as const;
-const SZENARIO_TEXT: Record<string, string> = {
-  rcp45: "im gedämpften Pfad (RCP4.5)",
-  rcp85: "im Hochemissionspfad (RCP8.5)",
-};
 
-const prozent = (a: number) => `${(a * 100).toLocaleString("de-DE", { maximumFractionDigits: 1 })} %`;
-const naechte = (n: number) => n.toLocaleString("de-DE");
-
-function aufzaehlung(namen: string[]): string {
-  if (namen.length === 0) return "";
-  if (namen.length === 1) return namen[0];
-  return `${namen.slice(0, -1).join(", ")} und ${namen[namen.length - 1]}`;
-}
+const prozent = (a: number) => `${Math.round(a * 100)} %`;
 
 export default function HerleitungDrei({ v }: { v: VerschneidungT }) {
   const monate = v.monate ?? [];
@@ -91,6 +81,20 @@ export default function HerleitungDrei({ v }: { v: VerschneidungT }) {
   const naechteGesamt =
     naechteChance != null && naechteRisiko != null ? naechteChance + naechteRisiko : null;
 
+  // Wo die Veränderung liegt, entscheidet, was sie wert ist: Ein Zuwachs in
+  // schwach gebuchten Monaten ist Spielraum, derselbe Zuwachs in der
+  // ausgebuchten Hauptsaison bringt wenig. Das ist die Frage, die eine DMO an
+  // dieser Stelle tatsächlich hat.
+  const inSpitzen = betroffen.filter((m) => spitzenNamen.has(m.name)).length;
+  const hebel =
+    betroffen.length === 0
+      ? ""
+      : inSpitzen === 0
+        ? "Betroffen sind ausschließlich Monate außerhalb Ihrer stärksten drei — dort ist am ehesten Luft nach oben."
+        : inSpitzen === betroffen.length
+          ? "Betroffen sind Ihre stärksten Monate; hier geht es um das Kerngeschäft, nicht um Randzeiten."
+          : "Betroffen sind sowohl starke als auch schwache Monate.";
+
   const nachkomma = Math.abs(maxDelta) < 5 ? 1 : 0;
   const dz = (n: number) =>
     `${n > 0 ? "+" : ""}${n.toLocaleString("de-DE", { minimumFractionDigits: nachkomma, maximumFractionDigits: nachkomma })}`;
@@ -100,7 +104,7 @@ export default function HerleitungDrei({ v }: { v: VerschneidungT }) {
       <header className="mb-4 border-b border-slate-100 pb-3">
         <h4 className="text-base font-semibold text-brand">{v.indikator_label}</h4>
         <p className="text-xs text-slate-500">
-          {SZENARIO_TEXT[v.szenario] ?? v.szenario}, Zeitraum {v.zeitfenster} · Aussagekraft {v.validitaet}
+          {zeitraumLage(v.zeitfenster)} ({v.zeitfenster}), {SZENARIO_SATZ[v.szenario] ?? v.szenario}
         </p>
       </header>
 
@@ -110,7 +114,8 @@ export default function HerleitungDrei({ v }: { v: VerschneidungT }) {
         satz={
           <>
             Ihr Geschäft konzentriert sich auf {aufzaehlung(spitzen.map((m) => m.name))} — dort fallen{" "}
-            <strong>{prozent(spitzenAnteil)}</strong> aller Übernachtungen an.
+            <strong>{prozent(spitzenAnteil)}</strong> aller Übernachtungen an. Die übrigen neun
+            Monate teilen sich den Rest.
           </>
         }
       >
@@ -134,17 +139,21 @@ export default function HerleitungDrei({ v }: { v: VerschneidungT }) {
             </>
           ) : (
             <>
-              Deutlich verändert sich {aufzaehlung(betroffen.map((m) => m.name))}
+              Deutlich verändern sich {betroffen.length === 1 ? "ein Monat" : `${betroffen.length} Monate`}
+              : {aufzaehlung(betroffen.map((m) => m.name))}.
               {staerkste && (
                 <>
-                  , am stärksten der {staerkste.name} mit{" "}
+                  {" "}
+                  Am stärksten der {staerkste.name} — dort{" "}
+                  {staerkste.delta > 0 ? "kommen" : "verschwinden"}{" "}
                   <strong>
-                    {dz(staerkste.delta)} {v.einheit}
+                    {dz(Math.abs(staerkste.delta))} {v.einheit.split("/")[0]}
                   </strong>{" "}
-                  ({dz(staerkste.delta_relativ * 100)} %)
+                  {staerkste.delta > 0 ? "dazu" : ""} ({dz(staerkste.delta_relativ * 100)} %). Er ist
+                  heute {monatsrolle(staerkste.anteil)} mit {prozent(staerkste.anteil)} Ihrer
+                  Übernachtungen.
                 </>
               )}
-              .
             </>
           )
         }
@@ -157,21 +166,21 @@ export default function HerleitungDrei({ v }: { v: VerschneidungT }) {
         titel="Die Überlagerung"
         satz={
           <>
-            Zusammengelegt liegen <strong>{prozent(anteilGesamt)}</strong> Ihrer Übernachtungen
-            {naechteGesamt != null && <> ({naechte(naechteGesamt)} Nächte)</>} in Monaten, die sich
-            deutlich verändern
+            Beides übereinandergelegt: Die Monate, die sich deutlich verändern, tragen heute{" "}
+            <strong>{prozent(anteilGesamt)}</strong> Ihrer Übernachtungen
+            {naechteGesamt != null && <> — {naechte(naechteGesamt)} Nächte</>}.{" "}
             {v.summe.exponierter_anteil_risiko > 0 && v.summe.exponierter_anteil_chance > 0 ? (
               <>
-                {" "}
-                — {prozent(v.summe.exponierter_anteil_chance)} davon als Chance,{" "}
-                {prozent(v.summe.exponierter_anteil_risiko)} als Risiko
+                Dabei geht es in beide Richtungen: {prozent(v.summe.exponierter_anteil_chance)} in
+                Monaten, die günstiger werden, {prozent(v.summe.exponierter_anteil_risiko)} in
+                Monaten, die schwieriger werden.
               </>
             ) : v.summe.exponierter_anteil_risiko > 0 ? (
-              <> — durchgängig als Risiko</>
-            ) : v.summe.exponierter_anteil_chance > 0 ? (
-              <> — durchgängig als Chance</>
-            ) : null}
-            . Das ist eine Aussage über Exposition, nicht über Buchungen.
+              <>Für diese Kennzahl geht die Veränderung durchgängig in die ungünstige Richtung.</>
+            ) : (
+              <>Für diese Kennzahl geht die Veränderung durchgängig in die günstige Richtung.</>
+            )}{" "}
+            {hebel}
           </>
         }
       >
@@ -185,7 +194,12 @@ export default function HerleitungDrei({ v }: { v: VerschneidungT }) {
         />
       </Schritt>
 
-      <p className="mt-3 text-[11px] leading-relaxed text-slate-500">{v.schwellen_hinweis}</p>
+      <p className="mt-3 text-[11px] leading-relaxed text-slate-500">
+        Was hier „deutlich verändert" heißt: mindestens 15 Prozent Veränderung gegenüber heute und
+        mindestens ein ganzer Tag im Jahr. Die Zahl sagt, wie viel Ihres heutigen Geschäfts von der
+        Veränderung berührt ist — nicht, wie viele Gäste kommen werden. Das entscheiden Angebot,
+        Preise und Ferientermine.
+      </p>
     </section>
   );
 }
