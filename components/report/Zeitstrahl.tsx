@@ -307,11 +307,19 @@ export default function Zeitstrahl({ strahl }: { strahl: ZeitstrahlT }) {
         </p>
       )}
 
+      {/* Der zweite Teil erklärt die Modellkurven — auf einer Karte ohne
+          Modellkurven erklärt er etwas, das nicht da ist. */}
       <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
-        {strahl.hinweis_messung} Die Modellkurven tragen die berechnete Änderung auf das zuletzt
-        gemessene Jahrzehnt auf; sie setzen deshalb dort an, wo die Messung endet. In den
-        Tabellen stehen die Werte auf ihre jeweilige Bezugsperiode bezogen und weichen davon ab.
-        Die Spannen gelten für Mehrjahresmittel, nicht für einzelne Jahre.
+        {strahl.hinweis_messung}
+        {modelliert && (
+          <>
+            {" "}
+            Die Modellkurven tragen die berechnete Änderung auf das zuletzt gemessene Jahrzehnt
+            auf; sie setzen deshalb dort an, wo die Messung endet. In den Tabellen stehen die
+            Werte auf ihre jeweilige Bezugsperiode bezogen und weichen davon ab. Die Spannen
+            gelten für Mehrjahresmittel, nicht für einzelne Jahre.
+          </>
+        )}
       </p>
     </figure>
   );
