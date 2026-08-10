@@ -18,7 +18,10 @@
 import type { VerschneidungT } from "./HerleitungDrei";
 import type { SaisonExpositionT } from "./SaisonExposition";
 
-const SZENARIO_KURZ: Record<string, string> = { rcp45: "RCP4.5", rcp85: "RCP8.5" };
+// Auch in der Tabelle heißt das Szenario nach seiner Ursache — sonst hätte der
+// Leser in Kapitel 1 „wenn der Ausstoß weiter steigt" gelernt und stünde hier
+// wieder vor einer Kennziffer.
+import { SZENARIO_KURZ } from "@/lib/klartext";
 
 const prozent = (a: number) =>
   a > 0 ? `${(a * 100).toLocaleString("de-DE", { maximumFractionDigits: 1 })} %` : "–";

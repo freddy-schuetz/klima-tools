@@ -14,6 +14,7 @@
 "use client";
 
 import type { WertT } from "./Kennzahl";
+import { einheitImSatz } from "@/lib/klartext";
 
 const VALIDITAET_KURZ: Record<string, string> = {
   hoch: "hoch",
@@ -91,8 +92,18 @@ export default function Kennzahlentabelle({
               <th scope="col" className="py-1.5 pr-3 font-semibold">Kennzahl</th>
               <th scope="col" className="py-1.5 pr-3 font-semibold">Zeitraum</th>
               <th scope="col" className="py-1.5 pr-3 text-right font-semibold">Referenz</th>
-              <th scope="col" className="py-1.5 pr-3 text-right font-semibold">RCP4.5</th>
-              <th scope="col" className="py-1.5 pr-3 text-right font-semibold">RCP8.5</th>
+              {/* Spaltenköpfe nach der Ursache, mit der Kennziffer als
+                  Kleingedrucktem — in einer Tabelle muss beides nebeneinander
+                  Platz haben: lesbar für den Vorstand, nachschlagbar fürs
+                  Fachbüro. */}
+              <th scope="col" className="py-1.5 pr-3 text-right font-semibold">
+                Ausstoß sinkt ab 2040
+                <span className="block font-normal normal-case text-slate-400">RCP4.5</span>
+              </th>
+              <th scope="col" className="py-1.5 pr-3 text-right font-semibold">
+                Ausstoß steigt weiter
+                <span className="block font-normal normal-case text-slate-400">RCP8.5</span>
+              </th>
               <th scope="col" className="py-1.5 pr-3 font-semibold">Einheit</th>
               <th scope="col" className="py-1.5 font-semibold">Belastbarkeit</th>
             </tr>
@@ -105,7 +116,7 @@ export default function Kennzahlentabelle({
                 <td className="py-1.5 pr-3 text-right tabular-nums text-slate-600">{zelle(z.referenz)}</td>
                 <td className="py-1.5 pr-3 text-right tabular-nums text-sky-800">{zelle(z.rcp45)}</td>
                 <td className="py-1.5 pr-3 text-right tabular-nums text-red-800">{zelle(z.rcp85)}</td>
-                <td className="py-1.5 pr-3 text-slate-500">{z.einheit}</td>
+                <td className="py-1.5 pr-3 text-slate-500">{einheitImSatz(z.einheit)}</td>
                 <td className="py-1.5 text-slate-500">{VALIDITAET_KURZ[z.validitaet] ?? z.validitaet}</td>
               </tr>
             ))}
