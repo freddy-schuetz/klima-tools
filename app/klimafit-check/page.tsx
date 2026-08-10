@@ -306,7 +306,7 @@ const DEMO_REPORTS: { ort: string; typ: string; kreis: string; kern: string; tok
     ort: "Sankt Peter-Ording",
     typ: "Küste · Baden",
     kreis: "Nordfriesland",
-    kern: "Längere Badesaison als Chance, steigende Hitzebelastung und Extremwetter als Risiko — verschnitten mit der ausgeprägtesten Saisonspitze der vier Demos.",
+    kern: "Längere Badesaison als Chance, steigende Hitzebelastung und Extremwetter als Risiko — verschnitten mit der ausgeprägtesten Saisonspitze der fünf Demos.",
     token: "tJLEG1uXcNim97uWWiBc7g",
   },
   {

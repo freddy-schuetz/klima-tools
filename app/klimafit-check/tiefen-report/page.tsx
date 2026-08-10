@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import AboutSection from "@/components/AboutSection";
+import EigeneDestination from "@/components/report/EigeneDestination";
 
 // Profil-Formular für den Tiefen-Report.
 //
@@ -15,6 +16,9 @@ const DESTINATIONEN = [
   { ags: "01054113", name: "Sankt Peter-Ording", zusatz: "Nordfriesland · Küste" },
   { ags: "09180117", name: "Garmisch-Partenkirchen", zusatz: "Oberbayern · Alpen" },
   { ags: "01003000", name: "Lübeck", zusatz: "Kreisfreie Stadt · Stadt mit Küste" },
+  // Ein ganzes Bundesland: zweistelliger Schluessel statt achtstelliger
+  // Gemeinde. Der Report rechnet dafuer den Median ueber die 18 Landkreise.
+  { ags: "12", name: "Brandenburg", zusatz: "ganzes Bundesland · Flachland" },
 ];
 
 const SCHWERPUNKTE = [
@@ -88,6 +92,13 @@ export default function TiefenReportFormular() {
         </p>
       </header>
 
+      {/* Wer hier landet und seine Destination nicht in der Liste findet, hatte
+          bisher keinen Weg weiter. Das Feld steht deshalb VOR dem Profil-
+          Formular: Es beantwortet die Frage, die zuerst auftaucht. Als eigenes
+          Element davor, nicht darin — verschachtelte Formulare sind ungültiges
+          HTML und brechen das Absenden. */}
+      <EigeneDestination quelle="Bestellseite" />
+
       {status === "fertig" ? (
         <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-emerald-200">
           <h2 className="mb-2 text-lg font-semibold text-emerald-900">Ihr Report wird erstellt</h2>
@@ -125,7 +136,7 @@ export default function TiefenReportFormular() {
               ))}
             </div>
             <p className="mt-3 text-xs leading-relaxed text-slate-500">
-              Für diese vier Destinationen liegen die Daten vollständig vor. Für Ihre eigene
+              Für diese fünf Destinationen liegen die Daten vollständig vor. Für Ihre eigene
               Destination bereiten wir sie auf Anfrage auf — die Klimadaten decken alle 401
               deutschen Landkreise ab, die Monatsdaten bislang Nordrhein-Westfalen, Bayern und
               Schleswig-Holstein.
