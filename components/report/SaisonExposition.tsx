@@ -54,11 +54,18 @@ export type SaisonExpositionT = {
 };
 
 // Blau gegen Orange statt Rot-Grün: bleibt auch bei Farbsehschwäche
-// unterscheidbar, und die Richtung steht zusätzlich als Text daneben.
-const FARBE: Record<string, { rand: string; strich: string; text: string }> = {
-  chance: { rand: "ring-sky-200", strich: "border-sky-500", text: "text-sky-900" },
-  risiko: { rand: "ring-orange-200", strich: "border-orange-500", text: "text-orange-900" },
-  neutral: { rand: "ring-slate-200", strich: "border-slate-300", text: "text-slate-700" },
+// unterscheidbar.
+//
+// Die Richtung trug zuvor ein 4 px breiter farbiger Streifen an der linken
+// Kante — zusätzlich zum ohnehin farbigen Ring, also zweimal dasselbe. Und seit
+// die Karte aus Fließtext besteht statt aus einem Datenblock, stand sie
+// nirgends mehr als WORT: Wer die Farbe nicht sieht, las eine Karte ohne
+// Wertung. Der Streifen ist weg, der Ring bleibt, und die Richtung steht als
+// Marke neben dem Zeitraum — sichtbar auch im Graustufendruck.
+const FARBE: Record<string, { rand: string; marke: string; text: string }> = {
+  chance: { rand: "ring-sky-200", marke: "bg-sky-50 text-sky-900 ring-sky-200", text: "text-sky-900" },
+  risiko: { rand: "ring-orange-200", marke: "bg-orange-50 text-orange-900 ring-orange-200", text: "text-orange-900" },
+  neutral: { rand: "ring-slate-200", marke: "bg-slate-100 text-slate-700 ring-slate-200", text: "text-slate-700" },
 };
 
 function zahl(n: number): string {
@@ -103,16 +110,23 @@ export default function SaisonExposition({ eintraege }: { eintraege: SaisonExpos
         return (
           <figure
             key={`${e.indikator}-${e.szenario}-${e.zeitfenster}-${i}`}
-            className={`break-inside-avoid rounded-2xl border-l-4 bg-white p-4 shadow-sm ring-1 print:shadow-none ${f.rand} ${f.strich}`}
+            className={`break-inside-avoid rounded-2xl bg-white p-4 shadow-sm ring-1 print:shadow-none ${f.rand}`}
           >
             <figcaption className="mb-2">
               <h4 className="font-semibold text-slate-900">{e.indikator_label}</h4>
               {e.indikator_erklaerung && (
                 <p className="mt-0.5 text-xs text-slate-500">{e.indikator_erklaerung}</p>
               )}
-              <p className="mt-1 text-xs text-slate-500">
-                {zeitraumLage(e.zeitfenster)} ({e.zeitfenster}),{" "}
-                {SZENARIO_SATZ[e.szenario] ?? e.szenario}
+              <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${f.marke}`}
+                >
+                  {e.richtung_label}
+                </span>
+                <span>
+                  {zeitraumLage(e.zeitfenster)} ({e.zeitfenster}),{" "}
+                  {SZENARIO_SATZ[e.szenario] ?? e.szenario}
+                </span>
               </p>
             </figcaption>
 

@@ -144,7 +144,10 @@ export function MassnahmeKarte({
         </div>
 
         {m.fallbeispiel?.text && (
-          <div className="mt-3 rounded-xl border-l-4 border-brand-accent bg-emerald-50/60 px-3 py-2.5">
+          // Der farbige Streifen an der Kante ist weg: Der Kasten hebt sich
+          // schon durch Fläche und Überschrift ab, und die Überschrift trägt
+          // die Farbe. Zwei Träger derselben Auszeichnung sind einer zu viel.
+          <div className="mt-3 rounded-xl bg-emerald-50/60 px-3 py-2.5 ring-1 ring-emerald-200/70">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-accent">
               Wo das schon läuft
             </p>
