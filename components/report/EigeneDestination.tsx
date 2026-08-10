@@ -19,7 +19,18 @@ import { useState } from "react";
 
 type Zustand = "offen" | "sendet" | "fertig" | "fehler";
 
-export default function EigeneDestination({ quelle }: { quelle?: string }) {
+export default function EigeneDestination({
+  quelle,
+  /**
+   * „bericht" steht IN einem fertigen Report, „auswahl" auf der Bestellseite.
+   * Ohne die Unterscheidung stand dort „Dieser Bericht ist ein Beispiel" —
+   * auf einer Seite, auf der es gar keinen Bericht gibt.
+   */
+  ort = "bericht",
+}: {
+  quelle?: string;
+  ort?: "bericht" | "auswahl";
+}) {
   const [destination, setDestination] = useState("");
   const [mail, setMail] = useState("");
   const [name, setName] = useState("");
@@ -60,10 +71,13 @@ export default function EigeneDestination({ quelle }: { quelle?: string }) {
 
   return (
     <section className="mb-8 rounded-2xl bg-slate-50 p-5 ring-1 ring-slate-200 print:hidden">
-      <h2 className="text-base font-semibold text-brand">Und für Ihre Destination?</h2>
+      <h2 className="text-base font-semibold text-brand">
+        {ort === "auswahl" ? "Ihre Destination ist nicht dabei?" : "Und für Ihre Destination?"}
+      </h2>
       <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-600">
-        Dieser Bericht ist ein Beispiel. Wenn Sie wissen wollen, wie er für Ihren Landkreis
-        aussähe: Name eintragen, ich sehe nach, welche Daten dafür vorliegen, und melde mich.
+        {ort === "auswahl"
+          ? "Für diese fünf liegen die Daten schon aufbereitet vor. Tragen Sie Ihre ein — ich sehe nach, was für Ihren Landkreis vorliegt, und melde mich."
+          : "Dieser Bericht ist ein Beispiel. Wenn Sie wissen wollen, wie er für Ihren Landkreis aussähe: Name eintragen, ich sehe nach, welche Daten dafür vorliegen, und melde mich."}
       </p>
 
       <form onSubmit={absenden} className="mt-4 grid gap-3 sm:grid-cols-[1.3fr_1fr_1.2fr_auto]">

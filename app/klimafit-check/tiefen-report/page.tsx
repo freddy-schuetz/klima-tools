@@ -97,7 +97,7 @@ export default function TiefenReportFormular() {
           Formular: Es beantwortet die Frage, die zuerst auftaucht. Als eigenes
           Element davor, nicht darin — verschachtelte Formulare sind ungültiges
           HTML und brechen das Absenden. */}
-      <EigeneDestination quelle="Bestellseite" />
+      <EigeneDestination quelle="Bestellseite" ort="auswahl" />
 
       {status === "fertig" ? (
         <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-emerald-200">
