@@ -198,8 +198,12 @@ export default function Stufenband({
           );
         })}
 
+        {/* Weißer Rand hinter der Zahl: Die gestrichelten Verbinder laufen sonst
+            mitten durch die Beschriftung. `paint-order` zeichnet die Kontur vor
+            der Füllung — in einer Grafik ohne Bibliothek der billigste Weg. */}
         {marken.map((m, i) => (
-          <text key={i} x={m.x} y={m.y} fontSize="11" fontWeight="700" fill={m.farbe}>
+          <text key={i} x={m.x} y={m.y} fontSize="11" fontWeight="700" fill={m.farbe}
+                stroke="#ffffff" strokeWidth="3.5" paintOrder="stroke" strokeLinejoin="round">
             {m.text}
           </text>
         ))}
