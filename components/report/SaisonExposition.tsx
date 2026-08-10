@@ -33,6 +33,8 @@ export type SaisonExpositionT = {
   referenz_zeitfenster?: string;
   referenz_art?: "messung" | "modellbasis";
   quelle_id?: string;
+  /** 2 = tragendes Segment, 1 = weiteres, 0 = keines. */
+  relevanz?: number;
   einheit: string;
   szenario: string;
   zeitfenster: string;
@@ -73,7 +75,10 @@ export default function SaisonExposition({ eintraege }: { eintraege: SaisonExpos
   const relevant = eintraege.filter((e) => e.richtung !== "neutral");
   if (!relevant.length) return null;
 
+  // Relevanz für DIESE Destination zuerst — sonst führt bei einer
+  // Badedestination der Frost, nur weil er sich absolut am stärksten bewegt.
   const sortiert = [...relevant].sort((a, b) => {
+    if ((a.relevanz ?? 0) !== (b.relevanz ?? 0)) return (b.relevanz ?? 0) - (a.relevanz ?? 0);
     if (a.richtung !== b.richtung) return a.richtung === "risiko" ? -1 : 1;
     return b.anteil_uebernachtungen - a.anteil_uebernachtungen;
   });

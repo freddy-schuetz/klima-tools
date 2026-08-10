@@ -154,12 +154,10 @@ export default function TiefenReportPage({ params }: { params: Promise<{ token: 
       const bisher = staerkste.get(v.indikator);
       if (!bisher || gewicht(v) > gewicht(bisher)) staerkste.set(v.indikator, v);
     }
+    const monatsgewicht = (e: VerschneidungT) =>
+      e.summe.exponierter_anteil_chance + e.summe.exponierter_anteil_risiko;
     const kurzMonatlich = [...staerkste.values()]
-      .sort(
-        (a, b) =>
-          (b.summe.exponierter_anteil_chance + b.summe.exponierter_anteil_risiko) -
-          (a.summe.exponierter_anteil_chance + a.summe.exponierter_anteil_risiko),
-      )
+      .sort((a, b) => (b.relevanz ?? 0) - (a.relevanz ?? 0) || monatsgewicht(b) - monatsgewicht(a))
       .slice(0, KURZ_MONATLICH);
 
     // Die saisonalen Befunde sind fuer eine Wintersportdestination die
@@ -171,10 +169,15 @@ export default function TiefenReportPage({ params }: { params: Promise<{ token: 
     // Sprung von "gab es nicht" auf "gibt es" ist der drastischste Fall und
     // waere garantiert als letzter einsortiert worden. Er zaehlt deshalb als
     // volle Veraenderung.
+    // Die relative Änderung wird bei 200 % gekappt. Ohne Deckel gewinnt immer
+    // die Kennzahl mit der kleinsten Ausgangsbasis: Schwüle Tage gehen bei
+    // Winterberg von 1,1 auf 19,3 — rechnerisch +1650 % — und schlagen damit den
+    // Rückgang von 105 Skitagen auf 2. Der Prozentsatz misst dort die Kleinheit
+    // der Basis, nicht die Bedeutung der Änderung.
     const gewicht = (e: SaisonExpositionT) => {
       const relativ =
         e.delta_relativ ?? (e.referenz === 0 && e.delta !== 0 ? 1 : 0);
-      return (e.anteil_uebernachtungen ?? 0) * Math.abs(relativ);
+      return (e.anteil_uebernachtungen ?? 0) * Math.min(Math.abs(relativ), 2);
     };
     const staerksteSaisonal = new Map<string, SaisonExpositionT>();
     for (const e of saisonal) {
@@ -183,7 +186,7 @@ export default function TiefenReportPage({ params }: { params: Promise<{ token: 
       if (!bisher || gewicht(e) > gewicht(bisher)) staerksteSaisonal.set(e.indikator, e);
     }
     const kurzSaisonal = [...staerksteSaisonal.values()]
-      .sort((a, b) => gewicht(b) - gewicht(a))
+      .sort((a, b) => (b.relevanz ?? 0) - (a.relevanz ?? 0) || gewicht(b) - gewicht(a))
       .slice(0, KURZ_SAISONAL);
 
     return {

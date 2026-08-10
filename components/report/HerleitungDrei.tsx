@@ -42,6 +42,8 @@ export type VerschneidungT = Omit<MatrixT, "monate" | "summe"> & {
   /** Was Zunahme oder Abnahme im Betrieb bedeutet — die Frage hinter der Zahl. */
   wirkung?: string;
   urteil_hinweis?: string;
+  /** 2 = tragendes Segment, 1 = weiteres, 0 = keines. */
+  relevanz?: number;
   quelle_id: string;
   validitaet: string;
   hoeher_ist_besser: boolean;
