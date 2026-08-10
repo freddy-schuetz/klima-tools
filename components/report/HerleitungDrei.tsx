@@ -14,7 +14,7 @@
 "use client";
 
 import type { MatrixT } from "./Monatsmatrix";
-import { aufzaehlung, monatsrolle, naechte, SZENARIO_SATZ, zeitraumLage } from "@/lib/klartext";
+import { aufzaehlung, einheitImSatz, monatsrolle, naechte, SZENARIO_SATZ, zeitraumLage } from "@/lib/klartext";
 
 export type ExpositionsmonatT = {
   monat: number;
@@ -38,6 +38,7 @@ export type ExpositionsmonatT = {
  */
 export type VerschneidungT = Omit<MatrixT, "monate" | "summe"> & {
   indikator: string;
+  indikator_erklaerung?: string;
   quelle_id: string;
   validitaet: string;
   hoeher_ist_besser: boolean;
@@ -98,12 +99,19 @@ export default function HerleitungDrei({ v }: { v: VerschneidungT }) {
   const nachkomma = Math.abs(maxDelta) < 5 ? 1 : 0;
   const dz = (n: number) =>
     `${n > 0 ? "+" : ""}${n.toLocaleString("de-DE", { minimumFractionDigits: nachkomma, maximumFractionDigits: nachkomma })}`;
+  // Steht die Richtung schon im Satz („dort kommen … dazu"), ist das Vorzeichen
+  // an der Zahl doppelt gemoppelt und liest sich falsch: „kommen +5 Tage dazu".
+  const ohneVorzeichen = (n: number) =>
+    n.toLocaleString("de-DE", { minimumFractionDigits: nachkomma, maximumFractionDigits: nachkomma });
 
   return (
     <section className="mb-6 break-inside-avoid rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 print:shadow-none">
       <header className="mb-4 border-b border-slate-100 pb-3">
         <h4 className="text-base font-semibold text-brand">{v.indikator_label}</h4>
-        <p className="text-xs text-slate-500">
+        {v.indikator_erklaerung && (
+          <p className="mt-0.5 text-xs text-slate-500">{v.indikator_erklaerung}</p>
+        )}
+        <p className="mt-1 text-xs text-slate-500">
           {zeitraumLage(v.zeitfenster)} ({v.zeitfenster}), {SZENARIO_SATZ[v.szenario] ?? v.szenario}
         </p>
       </header>
@@ -114,8 +122,8 @@ export default function HerleitungDrei({ v }: { v: VerschneidungT }) {
         satz={
           <>
             Ihr Geschäft konzentriert sich auf {aufzaehlung(spitzen.map((m) => m.name))} — dort fallen{" "}
-            <strong>{prozent(spitzenAnteil)}</strong> aller Übernachtungen an. Die übrigen neun
-            Monate teilen sich den Rest.
+            <strong>{prozent(spitzenAnteil)}</strong> aller Übernachtungen an. Die übrigen{" "}
+            {monate.length - spitzen.length} Monate teilen sich den Rest.
           </>
         }
       >
@@ -147,7 +155,7 @@ export default function HerleitungDrei({ v }: { v: VerschneidungT }) {
                   Am stärksten der {staerkste.name} — dort{" "}
                   {staerkste.delta > 0 ? "kommen" : "verschwinden"}{" "}
                   <strong>
-                    {dz(Math.abs(staerkste.delta))} {v.einheit.split("/")[0]}
+                    {ohneVorzeichen(Math.abs(staerkste.delta))} {einheitImSatz(v.einheit)}
                   </strong>{" "}
                   {staerkste.delta > 0 ? "dazu" : ""} ({dz(staerkste.delta_relativ * 100)} %). Er ist
                   heute {monatsrolle(staerkste.anteil)} mit {prozent(staerkste.anteil)} Ihrer

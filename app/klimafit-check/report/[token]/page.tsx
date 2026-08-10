@@ -69,6 +69,7 @@ type ReportJson = {
     massnahmen: MassnahmenkapitelT;
     methodik: {
       quellen: QuelleT[];
+      glossar?: Record<string, { name: string; erklaerung: string; fach: string; einheit: string }>;
       validierung: ValidierungT[];
       limitationen: string[];
       luecken: string[];
@@ -423,6 +424,34 @@ export default function TiefenReportPage({ params }: { params: Promise<{ token: 
           Jeder Wert im Report hat eine benannte Quelle, ein benanntes Szenario und eine benannte
           Lesart seiner Bandbreite. Was fehlt, steht als Lücke drin — nicht als Schätzung.
         </p>
+
+        {/* Die Überschriften oben dürfen lesbar sein — dafür steht hier, was
+            jede Kennzahl genau zählt, mitsamt der Fachbezeichnung zum
+            Nachschlagen. Sonst wäre Verständlichkeit mit Nachprüfbarkeit
+            bezahlt, und das ist bei einem Gutachten der falsche Tausch. */}
+        {Object.keys(k.methodik.glossar ?? {}).length > 0 && (
+          <Aufklappbar
+            titel="Was die Kennzahlen messen"
+            anzahl={Object.keys(k.methodik.glossar ?? {}).length}
+          >
+            <dl className="space-y-3 text-sm">
+              {Object.entries(k.methodik.glossar ?? {}).map(([schluessel, g]) => (
+                <div key={schluessel}>
+                  <dt className="font-semibold text-slate-800">
+                    {g.name}{" "}
+                    <span className="font-normal text-slate-400">· {g.einheit}</span>
+                  </dt>
+                  <dd className="text-slate-600">
+                    {g.erklaerung}
+                    {g.fach !== g.name && (
+                      <span className="text-slate-400"> — fachlich: {g.fach}</span>
+                    )}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </Aufklappbar>
+        )}
 
         <Aufklappbar titel="Validierung gegen amtliche Vergleichswerte" anzahl={k.methodik.validierung.length}>
           <Validierungstabelle zeilen={k.methodik.validierung} />

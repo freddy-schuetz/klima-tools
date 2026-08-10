@@ -32,6 +32,7 @@ export type VerlaufsstuetzeT = {
 export type ZeitstrahlT = {
   indikator: string;
   label: string;
+  erklaerung?: string;
   einheit: string;
   referenzperiode: string;
   hoeher_ist_besser: boolean;
@@ -134,6 +135,13 @@ export default function Zeitstrahl({ strahl }: { strahl: ZeitstrahlT }) {
     <figure className="mb-6 break-inside-avoid rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 print:shadow-none">
       <figcaption className="mb-3">
         <h4 className="text-base font-semibold text-brand">{strahl.label}</h4>
+        {/* Was gezählt wird, gehört unter die Überschrift, nicht hinein: "Warme
+            Sommertage" ist der Name, "Tage, an denen es 25 Grad oder wärmer
+            wird" die Definition. Beides in einer Zeile zwingt den Leser durch
+            eine Formel, bevor er zur Aussage kommt. */}
+        {strahl.erklaerung && (
+          <p className="mt-0.5 text-xs text-slate-500">{strahl.erklaerung}</p>
+        )}
         {k.bereits && <p className="mt-1 text-lg font-bold leading-snug text-brand">{k.bereits}</p>}
         {(k.richtung || k.hoehe) && (
           <p className="mt-1 text-sm leading-relaxed text-slate-600">

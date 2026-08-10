@@ -44,12 +44,42 @@ export function zeitraumLage(fenster: string): string {
  * Wie ein Monat für die Destination einzuordnen ist.
  * Redaktionelle Faustregeln auf den tagesnormierten Monatsanteilen; bei zwölf
  * Monaten liegt der Durchschnitt bei 8,3 Prozent.
+ *
+ * Die Rückgabe trägt ihren Artikel selbst, damit sie in „Er ist heute …" passt:
+ * „Hauptsaison" braucht keinen, „ein gut gebuchter Monat" schon.
  */
 export function monatsrolle(anteil: number): string {
   if (anteil >= 0.115) return "Hauptsaison";
-  if (anteil >= 0.075) return "gut gebuchter Monat";
+  if (anteil >= 0.075) return "ein gut gebuchter Monat";
   if (anteil >= 0.05) return "Schultersaison";
   return "Nebensaison";
+}
+
+/**
+ * Einheit im Satz statt als Kürzel: „96 Tage im Jahr" liest sich, „96
+ * Tage/Winter" muss man übersetzen. Der zweite Eintrag ist die Dativform, damit
+ * „ein Plus von 18 Tagen" nicht als „ein Plus von 18 Tage" endet.
+ * Gegenstück zu EINHEIT_IM_SATZ in app/report/klartext.py.
+ */
+const EINHEITEN: Record<string, [string, string]> = {
+  "Tage/Jahr": ["Tage im Jahr", "Tagen im Jahr"],
+  "Tage/Winter": ["Tage je Winter", "Tagen je Winter"],
+  "Nächte/Jahr": ["Nächte im Jahr", "Nächten im Jahr"],
+  "Stunden/Jahr": ["Stunden im Jahr", "Stunden im Jahr"],
+  Tage: ["Tage", "Tagen"],
+  Nächte: ["Nächte", "Nächten"],
+  Stunden: ["Stunden", "Stunden"],
+  "°C": ["Grad", "Grad"],
+  "%": ["Prozent", "Prozent"],
+  "mm/Tag": ["Millimeter am Tag", "Millimetern am Tag"],
+  "kg/m²": ["Kilogramm je Quadratmeter", "Kilogramm je Quadratmeter"],
+  "m/s": ["Meter je Sekunde", "Metern je Sekunde"],
+};
+
+export function einheitImSatz(kuerzel: string, fall: "nominativ" | "dativ" = "nominativ"): string {
+  const paar = EINHEITEN[kuerzel];
+  if (!paar) return kuerzel;
+  return fall === "dativ" ? paar[1] : paar[0];
 }
 
 /**

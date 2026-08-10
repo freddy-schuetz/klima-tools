@@ -14,12 +14,13 @@
  */
 "use client";
 
-import { aufzaehlung, naechte, SZENARIO_SATZ, zeitraumLage } from "@/lib/klartext";
+import { aufzaehlung, einheitImSatz, naechte, SZENARIO_SATZ, zeitraumLage } from "@/lib/klartext";
 
 export type SaisonExpositionT = {
   art: "saisonal";
   indikator: string;
   indikator_label: string;
+  indikator_erklaerung?: string;
   einheit: string;
   szenario: string;
   zeitfenster: string;
@@ -53,8 +54,6 @@ function zahl(n: number): string {
     : (Math.round(n * 10) / 10).toLocaleString("de-DE");
 }
 
-/** Die Einheit im Satz — „96 Tage", nicht „96 Tage/Winter". */
-const kurzeEinheit = (einheit: string) => einheit.split("/")[0].trim();
 
 export default function SaisonExposition({ eintraege }: { eintraege: SaisonExpositionT[] }) {
   // Nur die Kennzahlen zeigen, die sich überhaupt bewegen — eine Liste aus
@@ -71,7 +70,8 @@ export default function SaisonExposition({ eintraege }: { eintraege: SaisonExpos
     <div className="space-y-3">
       {sortiert.map((e, i) => {
         const f = FARBE[e.richtung] ?? FARBE.neutral;
-        const einheit = kurzeEinheit(e.einheit);
+        const einheit = einheitImSatz(e.einheit);
+        const einheitDativ = einheitImSatz(e.einheit, "dativ");
         const wirdMehr = e.delta > 0;
         const verschwindet = Math.abs(e.zukunft) < 0.05;
         const anteil = Math.round(e.anteil_uebernachtungen * 100);
@@ -82,7 +82,10 @@ export default function SaisonExposition({ eintraege }: { eintraege: SaisonExpos
           >
             <figcaption className="mb-2">
               <h4 className="font-semibold text-slate-900">{e.indikator_label}</h4>
-              <p className="text-xs text-slate-500">
+              {e.indikator_erklaerung && (
+                <p className="mt-0.5 text-xs text-slate-500">{e.indikator_erklaerung}</p>
+              )}
+              <p className="mt-1 text-xs text-slate-500">
                 {zeitraumLage(e.zeitfenster)} ({e.zeitfenster}),{" "}
                 {SZENARIO_SATZ[e.szenario] ?? e.szenario}
               </p>
@@ -90,7 +93,7 @@ export default function SaisonExposition({ eintraege }: { eintraege: SaisonExpos
 
             {/* Der Befund als Satz — die Zahlen stehen darin, nicht daneben. */}
             <p className="text-sm leading-relaxed text-slate-800">
-              Heute liegt der Wert bei{" "}
+              Heute sind es{" "}
               <strong>
                 {zahl(e.referenz)} {einheit}
               </strong>
@@ -105,7 +108,8 @@ export default function SaisonExposition({ eintraege }: { eintraege: SaisonExpos
                   <strong className={f.text}>
                     {zahl(e.zukunft)} {einheit}
                   </strong>{" "}
-                  — {wirdMehr ? "ein Plus" : "ein Minus"} von {zahl(Math.abs(e.delta))}
+                  — {wirdMehr ? "ein Plus" : "ein Minus"} von {zahl(Math.abs(e.delta))}{" "}
+                  {einheitDativ}
                   {e.delta_relativ != null && Math.abs(e.referenz) >= 5 && (
                     <> ({wirdMehr ? "+" : "−"}
                     {Math.round(Math.abs(e.delta_relativ) * 100)} %)</>
