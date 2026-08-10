@@ -72,9 +72,19 @@ export default function TiefenReportFormular() {
       if (!res.ok || !data.token) throw new Error(data.error || "start_failed");
       setReportUrl(data.url ?? `/klimafit-check/report/${data.token}`);
       setStatus("fertig");
-    } catch {
+    } catch (fehler) {
       setStatus("fehler");
-      setMeldung("Die Anfrage konnte nicht übermittelt werden. Bitte später erneut versuchen.");
+      // „Bitte später erneut versuchen" ist bei einem abgelehnten Eingabewert
+      // der falsche Rat: Später ist es genauso abgelehnt. Wenn der Dienst sagt,
+      // WAS ihm nicht passt, steht das hier — sonst bleibt es beim Hinweis auf
+      // den zweiten Versuch, der bei einer Störung tatsächlich hilft.
+      const grund = fehler instanceof Error ? fehler.message : "";
+      const abgewiesen = grund && grund !== "start_failed" && !grund.startsWith("upstream");
+      setMeldung(
+        abgewiesen
+          ? `Die Anfrage wurde abgelehnt: ${grund}. Schreiben Sie mir gern direkt an f.schuetz@posteo.de.`
+          : "Die Anfrage konnte nicht übermittelt werden. Bitte später erneut versuchen.",
+      );
     }
   }
 
