@@ -80,6 +80,14 @@ type ReportJson = {
 
 type Antwort = { status: string; ergebnis?: ReportJson; fehler?: string; error?: string };
 
+const TYP_LABEL: Record<string, string> = {
+  mittelgebirge: "Mittelgebirge",
+  alpin: "Alpenraum",
+  kueste: "Küste",
+  flachland: "Flachland",
+  stadt: "Stadt",
+};
+
 /** Wie viele Elemente der Kurzreport zeigt, bevor der Rest in den Detailteil wandert. */
 const KURZ_ZEITSTRAHLEN = 3;
 const KURZ_MONATLICH = 2;
@@ -230,10 +238,12 @@ export default function TiefenReportPage({ params }: { params: Promise<{ token: 
         </p>
         <h1 className="mb-1 text-3xl font-bold text-brand">{d.name}</h1>
         <p className="text-sm text-slate-600">
-          {d.bundesland}
-          {d.kreis && ` · ${d.kreis}`}
-          {d.hoehe_m != null && ` · ${d.hoehe_m} m ü. NN`}
-          {d.typ && ` · ${d.typ}`}
+          {d.kreis && d.kreis !== d.bundesland ? `${d.bundesland} · ${d.kreis}` : d.bundesland}
+          {/* Bei einem Report über ein ganzes Land ist eine Ortshöhe keine
+              Information, sondern nur der Schwerpunkt der Fläche — sie bleibt
+              deshalb weg. */}
+          {d.hoehe_m != null && !d.kreis?.startsWith("Land ") && ` · ${d.hoehe_m} m ü. NN`}
+          {d.typ && ` · ${TYP_LABEL[d.typ] ?? d.typ}`}
         </p>
         <p className="mt-2 text-xs text-slate-500">
           Erstellt am {new Date(r.erstellt).toLocaleDateString("de-DE")} · {r.pflichthinweise.positionierung}
