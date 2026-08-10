@@ -19,6 +19,8 @@
  */
 "use client";
 
+import Stufenband, { type VerlaufspunktT } from "./Stufenband";
+
 export type VerlaufsstuetzeT = {
   jahr: number;
   mitte: number;
@@ -47,6 +49,24 @@ export type ZeitstrahlT = {
     modellversatz?: string;
   };
   verlauf?: { szenario: string; stuetzen: VerlaufsstuetzeT[] }[];
+  /** Warum diese Reihe keine Projektion hat — nur gesetzt, wenn sie keine hat. */
+  ohne_projektion?: string;
+  /**
+   * Modellierte Aussagen zur SELBEN SACHE, aber in anderer Definition.
+   * Für Schnee: gemessen sind Tage mit Decke ab 1 cm im Kreismittel, modelliert
+   * sind Tage ab 30 cm auf einer Höhenstufe. Sie stehen deshalb untereinander,
+   * nicht hintereinander.
+   */
+  modellanschluss?: {
+    indikator: string;
+    label: string;
+    erklaerung: string;
+    einheit: string;
+    basis: number;
+    basis_zeitfenster?: string;
+    quelle_id?: string;
+    verlauf: VerlaufspunktT[];
+  }[];
   messung: {
     jahre: number[];
     werte: (number | null)[];
@@ -85,16 +105,19 @@ export default function Zeitstrahl({ strahl }: { strahl: ZeitstrahlT }) {
   if (jahre.length === 0) return null;
   const kurven = strahl.verlauf ?? [];
 
+  // Ohne Projektion endet die Grafik bei der Messung. Die Trennlinie „ab hier
+  // modelliert" über einer leeren Fläche verspricht etwas, was es nicht gibt —
+  // sie sah aus wie ein Ladefehler, war aber eine ehrliche Datenlücke.
+  const modelliert = kurven.length > 0;
   const messwerte = m.werte.filter((w): w is number => w != null);
   const kurvenwerte = kurven.flatMap((k) =>
     k.stuetzen.flatMap((s) => [s.mitte, s.unten, s.oben].filter((v): v is number => v != null)),
   );
   const obergrenze = Math.max(...messwerte, ...kurvenwerte, 1) * 1.05;
   const jahrVon = Math.min(...jahre);
-  const jahrBis = Math.max(
-    m.letztes_jahr + 5,
-    ...kurven.flatMap((k) => k.stuetzen.map((s) => s.jahr)),
-  );
+  const jahrBis = modelliert
+    ? Math.max(m.letztes_jahr + 5, ...kurven.flatMap((k) => k.stuetzen.map((s) => s.jahr)))
+    : m.letztes_jahr + 2;
 
   const x = (jahr: number) =>
     RAND.links + ((jahr - jahrVon) / (jahrBis - jahrVon)) * (B - RAND.links - RAND.rechts);
@@ -194,12 +217,16 @@ export default function Zeitstrahl({ strahl }: { strahl: ZeitstrahlT }) {
                 strokeDasharray="6 4" strokeLinejoin="round" strokeLinecap="round" />
         ))}
 
-        {/* Übergang */}
-        <line x1={x(m.letztes_jahr)} y1={RAND.oben} x2={x(m.letztes_jahr)} y2={H - RAND.unten}
-              stroke="#cbd5e1" strokeWidth="1" strokeDasharray="4 3" />
-        <text x={x(m.letztes_jahr) - 6} y={RAND.oben + 9} textAnchor="end" fontSize="10" fill="#94a3b8">
-          ab hier modelliert
-        </text>
+        {/* Übergang — nur, wenn dahinter wirklich etwas modelliert ist */}
+        {modelliert && (
+          <>
+            <line x1={x(m.letztes_jahr)} y1={RAND.oben} x2={x(m.letztes_jahr)} y2={H - RAND.unten}
+                  stroke="#cbd5e1" strokeWidth="1" strokeDasharray="4 3" />
+            <text x={x(m.letztes_jahr) - 6} y={RAND.oben + 9} textAnchor="end" fontSize="10" fill="#94a3b8">
+              ab hier modelliert
+            </text>
+          </>
+        )}
 
         {beschriftet.map((e) => (
           <text key={e.szenario} x={B - RAND.rechts + 6} y={e.yy + 3.5} fontSize="11"
@@ -235,8 +262,43 @@ export default function Zeitstrahl({ strahl }: { strahl: ZeitstrahlT }) {
             {SZENARIO[kurve.szenario]?.name ?? kurve.szenario}
           </li>
         ))}
-        <li className="text-slate-500">Fläche = Spanne der Modelle</li>
+        {modelliert && <li className="text-slate-500">Fläche = Spanne der Modelle</li>}
       </ul>
+
+      {/* Hat die Reihe keine Projektion, steht hier der Grund — und darunter,
+          falls vorhanden, die modellierten Aussagen zur selben Sache. Sie
+          bekommen ihre EIGENE Grafik mit eigener Skala: Winterberg zählt heute
+          rund 32 Tage mit Schneedecke, das Modell aber 105 Skitage auf der
+          präparierten Piste. Auf einer Achse stünde damit „mehr Skitage als Tage
+          mit Schnee" — erklärbar (Beschneiung, eine einzelne Höhenstufe), aber
+          in einem Gutachten trotzdem der teuerste Satz. */}
+      {!modelliert && strahl.ohne_projektion && (
+        <p className="mt-2 rounded-xl bg-slate-50 p-3 text-sm leading-relaxed text-slate-700 ring-1 ring-slate-200">
+          <strong className="text-brand">Warum hier nichts modelliert steht: </strong>
+          {strahl.ohne_projektion}
+        </p>
+      )}
+
+      {!modelliert && (strahl.modellanschluss ?? []).length > 0 && (
+        <div className="mt-4 border-t border-slate-200 pt-3">
+          <h5 className="text-sm font-semibold text-brand">
+            Was die Modelle zum Schnee sagen — in ihrer eigenen Zählweise
+          </h5>
+          {(strahl.modellanschluss ?? []).map((a) => (
+            <div key={`${a.indikator}-${a.basis}`} className="mt-3">
+              <p className="text-sm font-semibold text-slate-800">{a.label}</p>
+              {a.erklaerung && <p className="text-xs text-slate-500">{a.erklaerung}</p>}
+              <Stufenband
+                verlauf={a.verlauf}
+                basis={a.basis}
+                basisFenster={a.basis_zeitfenster}
+                einheit={a.einheit}
+                quelle={a.quelle_id}
+              />
+            </div>
+          ))}
+        </div>
+      )}
 
       {strahl.einordnung_messung && (
         <p className="mt-2 rounded-xl bg-slate-50 p-3 text-sm leading-relaxed text-slate-700 ring-1 ring-slate-200">
